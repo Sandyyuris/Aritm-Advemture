@@ -1,69 +1,103 @@
-import customtkinter as ctk
-from tkinter import messagebox
 import pygame
 import sys
 import math
+import random
 
 # --- IMPORT MODULE ---
 import map_labirin
 import animasi_jalan
 
-# --- KONFIGURASI GAME ---
+# --- KONFIGURASI UMUM ---
 FPS = 60
 
-# UKURAN KARAKTER (DIPERBESAR AGAR TERLIHAT JELAS/DEKAT)
-# Sebelumnya 100x120 -> Sekarang 130x160
-CHAR_VISUAL_WIDTH = 130  
-CHAR_VISUAL_HEIGHT = 160
+# WARNA MENU
+COLOR_SKY_TOP = (0, 102, 204)       # Biru Langit Tua
+COLOR_SKY_BOTTOM = (100, 180, 255)  # Biru Langit Cerah
+COLOR_BTN_BASE = (255, 200, 0)      # Kuning Emas
+COLOR_BTN_HOVER = (255, 230, 50)    # Kuning Terang (Hover)
+COLOR_BTN_HIGHLIGHT = (255, 255, 180) # Cahaya Putih/Krem (Highlight Atas)
+COLOR_BTN_SHADOW = (180, 130, 0)    # Kuning Gelap (Bayangan Bawah)
+COLOR_TEXT = (50, 30, 10)           # Coklat Tua untuk Teks
 
-# HITBOX (Disesuaikan sedikit agar proporsional tapi tetap "mudah masuk")
-HITBOX_WIDTH = 50
-HITBOX_HEIGHT = 30
+def create_background_map(screen_w, screen_h):
+    """Membuat surface background yang berisi map labirin transparan"""
+    bg_tile_size = 60
+    cols = screen_w // bg_tile_size + 2
+    rows = (screen_h // 2) // bg_tile_size + 2 # Hanya setengah layar bawah
 
-# KECEPATAN (Dinaikkan karena map sekarang lebih luas secara pixel)
-PLAYER_SPEED = 8
-
-# Warna UI
-COLOR_BG_MENU = "#1a1a2e"
-COLOR_ACCENT = "#e94560"
-COLOR_GOLD = "#ffbd69"
-COLOR_BUTTON = "#16213e"
-COLOR_BUTTON_HOVER = "#0f3460"
-
-class GameCamera:
-    def __init__(self, width, height, screen_w, screen_h):
-        self.camera = pygame.Rect(0, 0, width, height)
-        self.width = width
-        self.height = height
-        self.screen_w = screen_w
-        self.screen_h = screen_h
-
-    def apply(self, entity_rect):
-        return entity_rect.move(self.camera.topleft)
+    maze_data, w, h = map_labirin.generate_maze(cols, rows)
     
-    def update(self, target_rect):
-        x = -target_rect.centerx + int(self.screen_w / 2)
-        y = -target_rect.centery + int(self.screen_h / 2)
+    # Surface untuk map
+    map_surface = pygame.Surface((w * bg_tile_size, h * bg_tile_size))
+    map_surface.fill((0, 0, 0)) # Hitam transparan nantinya
+    map_surface.set_colorkey((0,0,0)) # Hitam jadi transparan
 
-        # Batasi kamera
-        x = min(0, max(-(self.width - self.screen_w), x))
-        y = min(0, max(-(self.height - self.screen_h), y))
+    # Kita gambar manual tile-nya agar sesuai ukuran bg_tile_size
+    # (Menggunakan kelas map_labirin asli tapi di-scale manual atau gambar ulang sederhana)
+    for r in range(h):
+        for c in range(w):
+            x = c * bg_tile_size
+            y = r * bg_tile_size
+            
+            # Gambar Rumput
+            pygame.draw.rect(map_surface, (100, 180, 50), (x, y, bg_tile_size, bg_tile_size))
+            
+            # Jika Tembok
+            if maze_data[r][c] == 1:
+                pygame.draw.rect(map_surface, (255, 215, 0), (x, y, bg_tile_size, bg_tile_size))
+                # Detail tembok (kotak dalam)
+                pygame.draw.rect(map_surface, (184, 134, 11), (x, y, bg_tile_size, bg_tile_size), 4)
+                pygame.draw.line(map_surface, (184, 134, 11), (x, y+bg_tile_size//2), (x+bg_tile_size, y+bg_tile_size//2), 2)
+
+    # Set Transparansi Global (0-255)
+    map_surface.set_alpha(100) # Agak transparan
+    return map_surface
+
+class Button:
+    def __init__(self, text, x, y, width, height, action=None):
+        self.text = text
+        self.rect = pygame.Rect(0, 0, width, height)
+        self.rect.center = (x, y)
+        self.action = action
+        self.is_hovered = False
+        self.font = pygame.font.SysFont("Arial", 30, bold=True)
+
+    def draw(self, screen):
+        # Tentukan warna berdasarkan hover
+        color = COLOR_BTN_HOVER if self.is_hovered else COLOR_BTN_BASE
         
-        self.camera = pygame.Rect(x, y, self.width, self.height)
+        # 1. Bayangan Bawah (Shadow) - Efek 3D
+        shadow_rect = self.rect.copy()
+        shadow_rect.y += 6
+        pygame.draw.rect(screen, COLOR_BTN_SHADOW, shadow_rect, border_radius=15)
 
-def run_game_loop():
-    root.withdraw()
-    pygame.init()
-    
-    # Fullscreen
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
-    
-    pygame.display.set_caption("Arithm-Adventure: Big Mode")
+        # 2. Base Tombol
+        pygame.draw.rect(screen, color, self.rect, border_radius=15)
+
+        # 3. Highlight Cahaya di Atas (Inner Light)
+        # Membuat efek kilau di bagian atas dalam tombol
+        highlight_rect = pygame.Rect(self.rect.x + 5, self.rect.y + 5, self.rect.width - 10, self.rect.height // 2 - 5)
+        pygame.draw.rect(screen, COLOR_BTN_HIGHLIGHT, highlight_rect, border_radius=10)
+        
+        # 4. Teks
+        text_surf = self.font.render(self.text, True, COLOR_TEXT)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+
+    def check_hover(self, mouse_pos):
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+
+    def click(self):
+        if self.is_hovered and self.action:
+            self.action()
+
+# --- FUNGSI GAME ---
+def run_game(screen):
+    """Loop Game Utama"""
     clock = pygame.time.Clock()
+    SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
     # --- SETUP MAP ---
-    # Gunakan map_labirin dengan TILE_SIZE = 100
     maze_data, w, h = map_labirin.generate_maze(25, 21)
     
     all_sprites = pygame.sprite.Group()
@@ -83,9 +117,35 @@ def run_game_loop():
     px = spawn_tile_x * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
     py = spawn_tile_y * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
 
+    # Konfigurasi Karakter
+    CHAR_VISUAL_WIDTH = 130
+    CHAR_VISUAL_HEIGHT = 160
+    HITBOX_WIDTH = 50
+    HITBOX_HEIGHT = 30
+    PLAYER_SPEED = 8
+
     walk_cycle = 0
     facing_right = True
     anim_state = 2 
+
+    # Kamera
+    class GameCamera:
+        def __init__(self, width, height, screen_w, screen_h):
+            self.camera = pygame.Rect(0, 0, width, height)
+            self.width = width
+            self.height = height
+            self.screen_w = screen_w
+            self.screen_h = screen_h
+
+        def apply(self, entity_rect):
+            return entity_rect.move(self.camera.topleft)
+        
+        def update(self, target_rect):
+            x = -target_rect.centerx + int(self.screen_w / 2)
+            y = -target_rect.centery + int(self.screen_h / 2)
+            x = min(0, max(-(self.width - self.screen_w), x))
+            y = min(0, max(-(self.height - self.screen_h), y))
+            self.camera = pygame.Rect(x, y, self.width, self.height)
 
     total_map_w = w * map_labirin.TILE_SIZE
     total_map_h = h * map_labirin.TILE_SIZE
@@ -98,10 +158,10 @@ def run_game_loop():
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                return "QUIT" # Keluar total
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    running = False
+                    return "MENU" # Kembali ke menu
 
         keys = pygame.key.get_pressed()
         dx, dy = 0, 0
@@ -116,7 +176,6 @@ def run_game_loop():
         elif keys[pygame.K_DOWN]:
             dy = PLAYER_SPEED; anim_state = 2; is_moving = True
 
-        # Tabrakan
         player_hitbox.x += dx
         hits = [wall for wall in wall_sprites if player_hitbox.colliderect(wall.rect)]
         if hits: player_hitbox.x -= dx 
@@ -132,11 +191,9 @@ def run_game_loop():
         
         camera.update(player_hitbox)
 
-        # Rendering
+        # RENDER
         screen.fill((20, 20, 30))
-
-        # Render Map (Optimasi Viewport)
-        # Kita tambah margin buffer (200px) agar tidak flicker saat di tepi layar
+        
         view_margin = 200 
         for sprite in floor_sprites:
             offset_pos = camera.apply(sprite.rect)
@@ -150,55 +207,118 @@ def run_game_loop():
                -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
                 screen.blit(sprite.image, offset_pos)
 
-        # Render Player
         player_img = animasi_jalan.get_player_image(
             anim_state, walk_cycle, facing_right, CHAR_VISUAL_WIDTH, CHAR_VISUAL_HEIGHT
         )
         visual_rect = player_img.get_rect()
-        # Tempelkan kaki ke hitbox
-        visual_rect.midbottom = (player_hitbox.centerx, player_hitbox.bottom + 10) # +10 biar makin napak
+        visual_rect.midbottom = (player_hitbox.centerx, player_hitbox.bottom + 10)
         
         final_draw_pos = camera.apply(visual_rect)
         screen.blit(player_img, final_draw_pos)
 
-        font_ui = pygame.font.Font(None, 40)
-        text_esc = font_ui.render("Tekan [ESC] untuk Menu", True, (255, 255, 255))
-        screen.blit(text_esc, (30, 30))
+        # Info UI
+        font_ui = pygame.font.SysFont("Arial", 20)
+        text_esc = font_ui.render("Tekan [ESC] untuk Kembali ke Menu", True, (255, 255, 255))
+        pygame.draw.rect(screen, (0,0,0), (10, 10, text_esc.get_width()+20, 40), border_radius=10)
+        screen.blit(text_esc, (20, 20))
+
+        pygame.display.flip()
+        clock.tick(FPS)
+    
+    return "MENU"
+
+# --- MAIN MENU ---
+def main_menu():
+    pygame.init()
+    # FULL SCREEN
+    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    pygame.display.set_caption("Arithm-Adventure")
+    
+    w, h = screen.get_size()
+    clock = pygame.time.Clock()
+
+    # Pre-render Background Map
+    bg_map = create_background_map(w, h)
+    
+    # State Control
+    running = True
+    current_state = "MENU" # MENU atau GAME
+
+    # Tombol Action
+    def start_game_action():
+        nonlocal current_state
+        current_state = "GAME"
+
+    def quit_game_action():
+        nonlocal running
+        running = False
+
+    # Buat Objek Tombol
+    btn_play = Button("MULAI PETUALANGAN", w//2, h//2, 350, 80, start_game_action)
+    btn_quit = Button("KELUAR", w//2, h//2 + 120, 350, 80, quit_game_action)
+    buttons = [btn_play, btn_quit]
+
+    # Font Judul
+    title_font = pygame.font.SysFont("Verdana", 80, bold=True)
+    subtitle_font = pygame.font.SysFont("Arial", 30, italic=True)
+
+    while running:
+        if current_state == "GAME":
+            # Masuk ke loop game
+            result = run_game(screen)
+            if result == "QUIT":
+                running = False
+            else:
+                current_state = "MENU" # Kembali ke menu
+                pygame.mouse.set_visible(True) # Pastikan kursor muncul lagi
+            continue
+
+        # --- LOGIKA MENU ---
+        mouse_pos = pygame.mouse.get_pos()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    for btn in buttons:
+                        btn.click()
+
+        for btn in buttons:
+            btn.check_hover(mouse_pos)
+
+        # --- GAMBAR MENU ---
+        # 1. Background Gradient Biru (Atas)
+        screen.fill(COLOR_SKY_TOP)
+        # Bikin gradasi sederhana ke bawah (opsional, kita pakai fill solid dulu agar rapi, atau rect separuh)
+        pygame.draw.rect(screen, COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
+
+        # 2. Gambar Map Transparan di Bawah
+        screen.blit(bg_map, (0, h - bg_map.get_height()))
+        
+        # 3. Judul & Subjudul
+        title_surf = title_font.render("ARITHM-ADVENTURE", True, (255, 215, 0))
+        # Shadow Judul
+        title_shadow = title_font.render("ARITHM-ADVENTURE", True, (0, 0, 0))
+        
+        title_rect = title_surf.get_rect(center=(w//2, h//4))
+        screen.blit(title_shadow, (title_rect.x + 4, title_rect.y + 4))
+        screen.blit(title_surf, title_rect)
+
+        sub_surf = subtitle_font.render("Edisi Layar Lebar & Zoom", True, (200, 230, 255))
+        sub_rect = sub_surf.get_rect(center=(w//2, h//4 + 70))
+        screen.blit(sub_surf, sub_rect)
+
+        # 4. Gambar Tombol
+        for btn in buttons:
+            btn.draw(screen)
 
         pygame.display.flip()
         clock.tick(FPS)
 
     pygame.quit()
-    root.deiconify()
-    root.attributes("-fullscreen", True)
+    sys.exit()
 
-# --- MENU UTAMA ---
-ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("dark-blue") 
-
-def quit_app():
-    if messagebox.askyesno("Konfirmasi", "Keluar dari aplikasi?"):
-        root.destroy()
-        sys.exit()
-
-root = ctk.CTk()
-root.title("Arithm-Adventure")
-root.attributes("-fullscreen", True)
-root.configure(fg_color=COLOR_BG_MENU)
-
-main_frame = ctk.CTkFrame(root, fg_color=COLOR_BUTTON, corner_radius=20, border_width=2, border_color=COLOR_GOLD)
-main_frame.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.6, relheight=0.7)
-
-title_label = ctk.CTkLabel(main_frame, text="ARITHM-ADVENTURE", font=ctk.CTkFont(family="Verdana", size=64, weight="bold"), text_color=COLOR_GOLD)
-title_label.pack(pady=(60, 10))
-
-subtitle_label = ctk.CTkLabel(main_frame, text="Edisi Layar Lebar & Zoom", font=ctk.CTkFont(family="Arial", size=24, slant="italic"), text_color="#a0a0a0")
-subtitle_label.pack(pady=(0, 50))
-
-btn_play = ctk.CTkButton(main_frame, text="MULAI", command=run_game_loop, font=ctk.CTkFont(family="Arial", size=28, weight="bold"), fg_color=COLOR_ACCENT, hover_color="#c2185b", height=80, width=350, corner_radius=40)
-btn_play.pack(pady=30)
-
-btn_quit = ctk.CTkButton(main_frame, text="KELUAR", command=quit_app, font=ctk.CTkFont(family="Arial", size=20), fg_color="transparent", border_width=2, border_color=COLOR_ACCENT, text_color=COLOR_ACCENT, hover_color=COLOR_BUTTON_HOVER, height=50, width=250, corner_radius=25)
-btn_quit.pack(pady=10)
-
-root.mainloop()
+if __name__ == "__main__":
+    main_menu()
