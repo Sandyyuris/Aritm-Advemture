@@ -35,9 +35,6 @@ class GrassTile(pygame.sprite.Sprite):
             
             pygame.draw.line(self.image, color, (gx, gy), (gx + tilt, gy - height), 3)
 
-        # Border tipis
-        pygame.draw.rect(self.image, (90, 170, 40), (0, 0, TILE_SIZE, TILE_SIZE), 1)
-        
         self.rect = self.image.get_rect()
         self.rect.x = x * TILE_SIZE
         self.rect.y = y * TILE_SIZE
