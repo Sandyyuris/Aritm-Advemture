@@ -601,8 +601,8 @@ def main_menu():
             l3 = Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: btn_level_action(3), enabled=(3 <= unlocked_level), font_size=20)
             
             # Baris 2: Level 4, 5
-            l4 = Button("LEVEL 4", w//2 - gap//2 - 20, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
-            l5 = Button("LEVEL 5", w//2 + gap//2 + 20, start_y + 100, 140, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
+            l4 = Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
+            l5 = Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
             
             btn_back = Button("KEMBALI", w//2, h - 100, 200, 60, btn_back_action)
             
