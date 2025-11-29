@@ -21,34 +21,26 @@ class GrassTile(pygame.sprite.Sprite):
         self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.image.fill(COLOR_GRASS_BASE)
         
-        # --- MEMBUAT TEKSTUR RUMPUT ---
-        # 1. Tambahkan sedikit noise/bintik tanah acak (opsional, biar tidak terlalu bersih)
+        # tekstur titik
         for _ in range(10):
             dx = random.randint(0, TILE_SIZE-5)
             dy = random.randint(0, TILE_SIZE-5)
             pygame.draw.rect(self.image, COLOR_DIRT, (dx, dy, 4, 4))
 
-        # 2. Gambar helai-helai rumput
-        # Kita gambar sekitar 40 helai rumput per kotak agar terlihat rimbun
+        # tekstur rumput (garis-garis)
         for _ in range(40):
             gx = random.randint(5, TILE_SIZE-5)
             gy = random.randint(10, TILE_SIZE-5)
-            
-            # Pilih warna acak (Hijau tua atau muda)
             color = random.choice([COLOR_GRASS_DARK, COLOR_GRASS_LIGHT])
             
-            # Gambar garis miring sebagai helai rumput
-            # (Start X, Start Y) -> (End X, End Y)
-            # Helai rumput miring ke kiri atau kanan secara acak
             tilt = random.randint(-5, 5) 
             height = random.randint(8, 15)
             
-            # Gambar helai (garis tebal 2px)
             pygame.draw.line(self.image, color, (gx, gy), (gx + tilt, gy - height), 3)
 
-        # Border tipis samar agar tetap terlihat batas gridnya (opsional)
+        # Border tipis
         pygame.draw.rect(self.image, (90, 170, 40), (0, 0, TILE_SIZE, TILE_SIZE), 1)
-
+        
         self.rect = self.image.get_rect()
         self.rect.x = x * TILE_SIZE
         self.rect.y = y * TILE_SIZE
@@ -59,12 +51,10 @@ class DetailedWall(pygame.sprite.Sprite):
         self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
         self.image.fill(COLOR_WALL_BASE)
         
-        # --- TEKSTUR TEMBOK (Sudah Bagus - Dipertahankan) ---
         # Border Luar Tebal
         pygame.draw.rect(self.image, COLOR_WALL_OUTLINE, (0, 0, TILE_SIZE, TILE_SIZE), 5)
         
         # Pola Bata Besar
-        # Garis Horizontal Tengah
         pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (0, TILE_SIZE//2), (TILE_SIZE, TILE_SIZE//2), 4)
         
         # Garis Vertikal (Selang-seling)
@@ -74,7 +64,6 @@ class DetailedWall(pygame.sprite.Sprite):
         pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (TILE_SIZE//4, TILE_SIZE//2), (TILE_SIZE//4, TILE_SIZE), 4)
         pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (TILE_SIZE*3//4, TILE_SIZE//2), (TILE_SIZE*3//4, TILE_SIZE), 4)
         
-        # Highlight/Shadow sederhana pada bata agar terlihat 3D
         # Shadow di bawah garis tengah
         pygame.draw.line(self.image, (218, 165, 32), (5, TILE_SIZE//2 + 5), (TILE_SIZE-5, TILE_SIZE//2 + 5), 2)
 

@@ -11,29 +11,25 @@ import animasi_jalan
 FPS = 60
 
 # WARNA MENU
-COLOR_SKY_TOP = (0, 102, 204)       # Biru Langit Tua
-COLOR_SKY_BOTTOM = (100, 180, 255)  # Biru Langit Cerah
-COLOR_BTN_BASE = (255, 200, 0)      # Kuning Emas
-COLOR_BTN_HOVER = (255, 230, 50)    # Kuning Terang (Hover)
-COLOR_BTN_HIGHLIGHT = (255, 255, 180) # Cahaya Putih/Krem (Highlight Atas)
-COLOR_BTN_SHADOW = (180, 130, 0)    # Kuning Gelap (Bayangan Bawah)
-COLOR_TEXT = (50, 30, 10)           # Coklat Tua untuk Teks
+COLOR_SKY_TOP = (0, 102, 204)        
+COLOR_SKY_BOTTOM = (100, 180, 255)   
+COLOR_BTN_BASE = (255, 200, 0)      
+COLOR_BTN_HOVER = (255, 230, 50)    
+COLOR_BTN_HIGHLIGHT = (255, 255, 180) 
+COLOR_BTN_SHADOW = (180, 130, 0)     
+COLOR_TEXT = (50, 30, 10)        
 
 def create_background_map(screen_w, screen_h):
     """Membuat surface background yang berisi map labirin transparan"""
     bg_tile_size = 60
     cols = screen_w // bg_tile_size + 2
-    rows = (screen_h // 2) // bg_tile_size + 2 # Hanya setengah layar bawah
+    rows = (screen_h // 2) // bg_tile_size + 2 
 
     maze_data, w, h = map_labirin.generate_maze(cols, rows)
     
-    # Surface untuk map
     map_surface = pygame.Surface((w * bg_tile_size, h * bg_tile_size))
-    map_surface.fill((0, 0, 0)) # Hitam transparan nantinya
-    map_surface.set_colorkey((0,0,0)) # Hitam jadi transparan
-
-    # Kita gambar manual tile-nya agar sesuai ukuran bg_tile_size
-    # (Menggunakan kelas map_labirin asli tapi di-scale manual atau gambar ulang sederhana)
+    map_surface.fill((0, 0, 0)) 
+    map_surface.set_colorkey((0,0,0)) 
     for r in range(h):
         for c in range(w):
             x = c * bg_tile_size
@@ -45,12 +41,10 @@ def create_background_map(screen_w, screen_h):
             # Jika Tembok
             if maze_data[r][c] == 1:
                 pygame.draw.rect(map_surface, (255, 215, 0), (x, y, bg_tile_size, bg_tile_size))
-                # Detail tembok (kotak dalam)
                 pygame.draw.rect(map_surface, (184, 134, 11), (x, y, bg_tile_size, bg_tile_size), 4)
                 pygame.draw.line(map_surface, (184, 134, 11), (x, y+bg_tile_size//2), (x+bg_tile_size, y+bg_tile_size//2), 2)
 
-    # Set Transparansi Global (0-255)
-    map_surface.set_alpha(100) # Agak transparan
+    map_surface.set_alpha(100)
     return map_surface
 
 class Button:
@@ -63,23 +57,17 @@ class Button:
         self.font = pygame.font.SysFont("Arial", 30, bold=True)
 
     def draw(self, screen):
-        # Tentukan warna berdasarkan hover
         color = COLOR_BTN_HOVER if self.is_hovered else COLOR_BTN_BASE
         
-        # 1. Bayangan Bawah (Shadow) - Efek 3D
         shadow_rect = self.rect.copy()
         shadow_rect.y += 6
         pygame.draw.rect(screen, COLOR_BTN_SHADOW, shadow_rect, border_radius=15)
 
-        # 2. Base Tombol
         pygame.draw.rect(screen, color, self.rect, border_radius=15)
-
-        # 3. Highlight Cahaya di Atas (Inner Light)
-        # Membuat efek kilau di bagian atas dalam tombol
+        
         highlight_rect = pygame.Rect(self.rect.x + 5, self.rect.y + 5, self.rect.width - 10, self.rect.height // 2 - 5)
         pygame.draw.rect(screen, COLOR_BTN_HIGHLIGHT, highlight_rect, border_radius=10)
-        
-        # 4. Teks
+
         text_surf = self.font.render(self.text, True, COLOR_TEXT)
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
@@ -91,13 +79,11 @@ class Button:
         if self.is_hovered and self.action:
             self.action()
 
-# --- FUNGSI GAME ---
 def run_game(screen):
     """Loop Game Utama"""
     clock = pygame.time.Clock()
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
-    # --- SETUP MAP ---
     maze_data, w, h = map_labirin.generate_maze(25, 21)
     
     all_sprites = pygame.sprite.Group()
@@ -111,13 +97,12 @@ def run_game(screen):
             if maze_data[row][col] == 1:
                 wall = map_labirin.DetailedWall(col, row)
                 wall_sprites.add(wall)
-
-    # --- SETUP PLAYER ---
+                
+    # Posisi Spawn Player
     spawn_tile_x, spawn_tile_y = 1, 1
     px = spawn_tile_x * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
     py = spawn_tile_y * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
 
-    # Konfigurasi Karakter
     CHAR_VISUAL_WIDTH = 130
     CHAR_VISUAL_HEIGHT = 160
     HITBOX_WIDTH = 50
@@ -198,13 +183,13 @@ def run_game(screen):
         for sprite in floor_sprites:
             offset_pos = camera.apply(sprite.rect)
             if -view_margin < offset_pos.x < SCREEN_WIDTH + view_margin and \
-               -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
+            -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
                 screen.blit(sprite.image, offset_pos)
 
         for sprite in wall_sprites:
             offset_pos = camera.apply(sprite.rect)
             if -view_margin < offset_pos.x < SCREEN_WIDTH + view_margin and \
-               -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
+            -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
                 screen.blit(sprite.image, offset_pos)
 
         player_img = animasi_jalan.get_player_image(
@@ -230,14 +215,12 @@ def run_game(screen):
 # --- MAIN MENU ---
 def main_menu():
     pygame.init()
-    # FULL SCREEN
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Arithm-Adventure")
     
     w, h = screen.get_size()
     clock = pygame.time.Clock()
 
-    # Pre-render Background Map
     bg_map = create_background_map(w, h)
     
     # State Control
@@ -269,7 +252,7 @@ def main_menu():
             if result == "QUIT":
                 running = False
             else:
-                current_state = "MENU" # Kembali ke menu
+                current_state = "MENU" 
                 pygame.mouse.set_visible(True) # Pastikan kursor muncul lagi
             continue
 
@@ -288,18 +271,14 @@ def main_menu():
         for btn in buttons:
             btn.check_hover(mouse_pos)
 
-        # --- GAMBAR MENU ---
         # 1. Background Gradient Biru (Atas)
         screen.fill(COLOR_SKY_TOP)
-        # Bikin gradasi sederhana ke bawah (opsional, kita pakai fill solid dulu agar rapi, atau rect separuh)
         pygame.draw.rect(screen, COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
 
         # 2. Gambar Map Transparan di Bawah
         screen.blit(bg_map, (0, h - bg_map.get_height()))
         
-        # 3. Judul & Subjudul
         title_surf = title_font.render("ARITHM-ADVENTURE", True, (255, 215, 0))
-        # Shadow Judul
         title_shadow = title_font.render("ARITHM-ADVENTURE", True, (0, 0, 0))
         
         title_rect = title_surf.get_rect(center=(w//2, h//4))

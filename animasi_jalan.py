@@ -4,9 +4,8 @@ import math
 
 # --- KONFIGURASI VISUAL ---
 CAIRO_WIDTH, CAIRO_HEIGHT = 640, 800
-BASE_SCALE = 5  # Skala dasar render cairo
+BASE_SCALE = 5  
 
-# --- PALET WARNA (LENGKAP) ---
 COLORS = {
     "SKIN": (0.92, 0.78, 0.62),
     "SKIN_SHADOW": (0.82, 0.68, 0.52),
@@ -40,7 +39,7 @@ def draw_adventurer_front_fixed(walk_cycle):
     offset = math.sin(walk_cycle) * 4 
     body_bob = abs(math.sin(walk_cycle)) * 1.5
 
-    # --- KAKI ---
+    # Kaki
     leg_left_y = 100 + (offset if offset > 0 else 0)
     ctx.set_source_rgb(*COLORS["PANTS"]); rounded_rect(ctx, cx - 21, leg_left_y, 22, 45, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["BOOTS"]); rounded_rect(ctx, cx - 22, leg_left_y + 35, 24, 18, 5); ctx.fill()
@@ -49,7 +48,7 @@ def draw_adventurer_front_fixed(walk_cycle):
     ctx.set_source_rgb(*COLORS["PANTS"]); rounded_rect(ctx, cx - 1, leg_right_y, 22, 45, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["BOOTS"]); rounded_rect(ctx, cx - 2, leg_right_y + 35, 24, 18, 5); ctx.fill()
 
-    # --- LENGAN ---
+    # Lengan
     arm_left_y = 55 + (-offset * 0.8) + body_bob
     ctx.set_source_rgb(*COLORS["SHIRT"]); rounded_rect(ctx, cx - 39, arm_left_y, 18, 42, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["SKIN"]); ctx.arc(cx - 30, arm_left_y + 44, 9, 0, 2*math.pi); ctx.fill()
@@ -58,7 +57,7 @@ def draw_adventurer_front_fixed(walk_cycle):
     ctx.set_source_rgb(*COLORS["SHIRT"]); rounded_rect(ctx, cx + 21, arm_right_y, 18, 42, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["SKIN"]); ctx.arc(cx + 30, arm_right_y + 44, 9, 0, 2*math.pi); ctx.fill()
 
-    # --- BADAN ---
+    # Badan
     body_y = 50 + body_bob
     ctx.set_source_rgb(*COLORS["SHIRT"]); rounded_rect(ctx, cx - 22, body_y, 44, 60, 10); ctx.fill()
     ctx.set_source_rgb(*COLORS["STRAP"])
@@ -69,11 +68,11 @@ def draw_adventurer_front_fixed(walk_cycle):
     rounded_rect(ctx, cx + 6, body_y, 16, 55, 8); ctx.fill()
     ctx.set_source_rgb(*COLORS["HAT_BAND"]); rounded_rect(ctx, cx - 20, body_y + 50, 40, 8, 2); ctx.fill()
 
-    # --- KEPALA ---
+    # Kepala
     head_y = 35 + body_bob
     ctx.set_source_rgb(*COLORS["SKIN"])
-    rounded_rect(ctx, cx - 8, head_y + 5, 16, 15, 4); ctx.fill() # Leher
-    ctx.arc(cx, head_y, 23, 0, 2 * math.pi); ctx.fill() # Kepala
+    rounded_rect(ctx, cx - 8, head_y + 5, 16, 15, 4); ctx.fill() 
+    ctx.arc(cx, head_y, 23, 0, 2 * math.pi); ctx.fill()
 
     # Wajah
     eye_y = head_y + 1; eye_offset = 9
@@ -91,7 +90,7 @@ def draw_adventurer_front_fixed(walk_cycle):
     ctx.set_line_width(2); ctx.set_line_cap(cairo.LINE_CAP_ROUND); ctx.new_sub_path()
     ctx.arc(cx, eye_y + 8, 6, 0.2 * math.pi, 0.8 * math.pi); ctx.stroke() # Mulut
 
-    # --- TOPI ---
+    # Topi
     ctx.set_source_rgb(*COLORS["HAT"])
     ctx.save(); ctx.translate(cx, head_y - 10); ctx.scale(1, 0.5); ctx.arc(0, 0, 38, 0, 2 * math.pi); ctx.restore(); ctx.fill()
     ctx.set_source_rgb(*COLORS["HAT"]); rounded_rect(ctx, cx - 22, head_y - 30, 44, 25, 10); ctx.fill()
@@ -108,7 +107,7 @@ def draw_adventurer_back_fixed(walk_cycle):
     cx = 64
     offset = math.sin(walk_cycle) * 4 
     
-    # --- KAKI ---
+    # Kaki
     leg_left_y = 100 + (offset if offset > 0 else 0) 
     ctx.set_source_rgb(*COLORS["PANTS"]); rounded_rect(ctx, cx - 21, leg_left_y, 22, 45, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["BOOTS"]); rounded_rect(ctx, cx - 22, leg_left_y + 35, 24, 18, 5); ctx.fill()
@@ -117,7 +116,7 @@ def draw_adventurer_back_fixed(walk_cycle):
     ctx.set_source_rgb(*COLORS["PANTS"]); rounded_rect(ctx, cx - 1, leg_right_y, 22, 45, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["BOOTS"]); rounded_rect(ctx, cx - 2, leg_right_y + 35, 24, 18, 5); ctx.fill()
 
-    # --- TANGAN ---
+    # Lengan
     arm_left_y = 55 + (-offset * 0.8)
     ctx.set_source_rgb(*COLORS["SHIRT"]); rounded_rect(ctx, cx - 39, arm_left_y, 18, 42, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["SKIN"]); ctx.arc(cx - 30, arm_left_y + 44, 9, 0, 2*math.pi); ctx.fill()
@@ -126,7 +125,7 @@ def draw_adventurer_back_fixed(walk_cycle):
     ctx.set_source_rgb(*COLORS["SHIRT"]); rounded_rect(ctx, cx + 21, arm_right_y, 18, 42, 6); ctx.fill()
     ctx.set_source_rgb(*COLORS["SKIN"]); ctx.arc(cx + 30, arm_right_y + 44, 9, 0, 2*math.pi); ctx.fill()
 
-    # --- BADAN & TAS ---
+    # Badan
     body_bob = abs(math.sin(walk_cycle)) * 1.5
     body_y = 50 + body_bob
 
@@ -138,21 +137,20 @@ def draw_adventurer_back_fixed(walk_cycle):
     rounded_rect(ctx, cx - 28, body_y + 2, 56, 20, 12); ctx.fill()
     rounded_rect(ctx, cx - 15, body_y + 30, 30, 20, 5); ctx.fill()
 
-    # --- KEPALA & TOPI ---
+    # Kepala
     head_y = 35 + body_bob
     ctx.set_source_rgb(*COLORS["SKIN"]); rounded_rect(ctx, cx - 8, head_y + 5, 16, 15, 4); ctx.fill()
     ctx.arc(cx, head_y, 23, 0, 2 * math.pi); ctx.fill()
     
+    # Topi
     ctx.set_source_rgb(*COLORS["HAT"]); rounded_rect(ctx, cx - 22, head_y - 30, 44, 25, 10); ctx.fill()
     ctx.set_source_rgb(*COLORS["HAT_BAND"]); rounded_rect(ctx, cx - 22, head_y - 13, 44, 6, 3); ctx.fill()
-    
     ctx.set_source_rgb(*COLORS["HAT"])
     ctx.save(); ctx.translate(cx, head_y - 10); ctx.scale(1, 0.5); ctx.arc(0, 0, 38, 0, 2 * math.pi); ctx.restore(); ctx.fill()
 
     return surface
 
 def draw_dynamic_character(swing_angle):
-    """Tampak SAMPING Lengkap"""
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CAIRO_WIDTH, CAIRO_HEIGHT)
     ctx = cairo.Context(surface)
     ctx.scale(BASE_SCALE, BASE_SCALE)
@@ -225,7 +223,6 @@ def cairo_to_pygame(surface):
     data = surface.get_data()
     return pygame.image.frombuffer(data, (CAIRO_WIDTH, CAIRO_HEIGHT), "BGRA")
 
-# --- FUNGSI UTAMA YANG DIPANGGIL MAIN.PY ---
 def get_player_image(state, walk_cycle, facing_right, target_width, target_height):
     """
     state: 0 (Samping), 1 (Belakang), 2 (Depan)
@@ -244,7 +241,6 @@ def get_player_image(state, walk_cycle, facing_right, target_width, target_heigh
     # Flip jika hadap kiri (hanya mode samping)
     if state == 0 and not facing_right:
         img = pygame.transform.flip(img, True, False)
-
-    # Resize
+        
     img = pygame.transform.smoothscale(img, (target_width, target_height))
     return img
