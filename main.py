@@ -4,19 +4,21 @@ import math
 import random
 
 # --- IMPORT MODULE ---
+# Pastikan file map_labirin.py dan animasi_jalan.py berada di folder yang sama
 import map_labirin
 import animasi_jalan
 
 # --- KONFIGURASI UMUM ---
 FPS = 60
 
-# WARNA MENU
+# WARNA UI
 COLOR_SKY_TOP = (0, 102, 204)        
 COLOR_SKY_BOTTOM = (100, 180, 255)   
 COLOR_BTN_BASE = (255, 200, 0)      
 COLOR_BTN_HOVER = (255, 230, 50)    
 COLOR_BTN_HIGHLIGHT = (255, 255, 180) 
-COLOR_BTN_SHADOW = (180, 130, 0)     
+COLOR_BTN_SHADOW = (180, 130, 0)
+COLOR_BTN_DISABLED = (150, 150, 150) # Warna tombol terkunci
 COLOR_TEXT = (50, 30, 10)        
 
 def create_background_map(screen_w, screen_h):
@@ -43,39 +45,67 @@ def create_background_map(screen_w, screen_h):
     return map_surface
 
 class Button:
-    def __init__(self, text, x, y, width, height, action=None):
+    def __init__(self, text, x, y, width, height, action=None, enabled=True, font_size=30):
         self.text = text
         self.rect = pygame.Rect(0, 0, width, height)
         self.rect.center = (x, y)
         self.action = action
         self.is_hovered = False
-        self.font = pygame.font.SysFont("Arial", 30, bold=True)
+        self.enabled = enabled
+        self.font = pygame.font.SysFont("Arial", font_size, bold=True)
 
     def draw(self, screen):
-        color = COLOR_BTN_HOVER if self.is_hovered else COLOR_BTN_BASE
+        if self.enabled:
+            color = COLOR_BTN_HOVER if self.is_hovered else COLOR_BTN_BASE
+            shadow_color = COLOR_BTN_SHADOW
+        else:
+            color = COLOR_BTN_DISABLED
+            shadow_color = (100, 100, 100)
+
+        # Shadow
         shadow_rect = self.rect.copy()
         shadow_rect.y += 6
-        pygame.draw.rect(screen, COLOR_BTN_SHADOW, shadow_rect, border_radius=15)
+        pygame.draw.rect(screen, shadow_color, shadow_rect, border_radius=15)
+        
+        # Main Button
         pygame.draw.rect(screen, color, self.rect, border_radius=15)
-        highlight_rect = pygame.Rect(self.rect.x + 5, self.rect.y + 5, self.rect.width - 10, self.rect.height // 2 - 5)
-        pygame.draw.rect(screen, COLOR_BTN_HIGHLIGHT, highlight_rect, border_radius=10)
-        text_surf = self.font.render(self.text, True, COLOR_TEXT)
+        
+        # Highlight (only if enabled)
+        if self.enabled:
+            highlight_rect = pygame.Rect(self.rect.x + 5, self.rect.y + 5, self.rect.width - 10, self.rect.height // 2 - 5)
+            pygame.draw.rect(screen, COLOR_BTN_HIGHLIGHT, highlight_rect, border_radius=10)
+        
+        # Text
+        text_color = COLOR_TEXT if self.enabled else (100, 100, 100)
+        text_surf = self.font.render(self.text, True, text_color)
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
+        
+        # Lock Icon if disabled
+        if not self.enabled:
+            lock_surf = self.font.render("🔒", True, (80, 80, 80))
+            lock_rect = lock_surf.get_rect(midbottom=(self.rect.centerx, self.rect.top - 5))
+            screen.blit(lock_surf, lock_rect)
 
     def check_hover(self, mouse_pos):
-        self.is_hovered = self.rect.collidepoint(mouse_pos)
+        if self.enabled:
+            self.is_hovered = self.rect.collidepoint(mouse_pos)
+        else:
+            self.is_hovered = False
 
     def click(self):
-        if self.is_hovered and self.action:
+        if self.enabled and self.is_hovered and self.action:
             self.action()
 
 class MathQuiz:
-    def __init__(self):
-        self.questions_needed = 2
-        self.correct_answers = 0
+    def __init__(self, level):
+        self.level = level
+        # Tingkat kesulitan soal & jumlah nyawa berdasarkan level
+        self.questions_needed = 3 
         self.max_lives = 3
+        
         self.lives = self.max_lives
+        self.correct_answers = 0
         
         self.current_question = ""
         self.current_answer = ""
@@ -90,22 +120,35 @@ class MathQuiz:
         self.font_small = pygame.font.SysFont("Arial", 20)
 
     def generate_question(self):
-        op = random.choice(['+', '-', 'x', '÷'])
+        # Tentukan operasi berdasarkan Level
+        if self.level == 1:
+            op = '+'
+        elif self.level == 2:
+            op = '-'
+        elif self.level == 3:
+            op = 'x'
+        elif self.level == 4:
+            op = '÷'
+        else: # Level 5 Campuran
+            op = random.choice(['+', '-', 'x', '÷'])
+
         if op == '+':
             a, b = random.randint(10, 50), random.randint(10, 50)
             ans = a + b
         elif op == '-':
-            a, b = random.randint(20, 99), random.randint(10, 20)
+            a = random.randint(20, 99)
+            b = random.randint(10, a) # Pastikan hasil tidak negatif
             ans = a - b
         elif op == 'x':
-            a, b = random.randint(2, 12), random.randint(2, 12)
+            a, b = random.randint(2, 10), random.randint(2, 10)
             ans = a * b
-        else:
-            x, y = random.randint(2, 10), random.randint(2, 9)
-            ex = x * y
+        else: # Pembagian
+            x = random.randint(2, 10) # Pembagi
+            y = random.randint(2, 10) # Hasil
+            ex = x * y # Bilangan yang dibagi
             a = ex
             b = x
-            ans = a // b
+            ans = y
         
         self.current_question = f"{a} {op} {b} = ?"
         self.current_answer = str(ans)
@@ -143,15 +186,15 @@ class MathQuiz:
         overlay.set_alpha(180)
         screen.blit(overlay, (0, 0))
 
-        # --- Panel Kuis (Tema Batu/Kertas Kuno) ---
+        # --- Panel Kuis ---
         box_w, box_h = 500, 350
         box_x = (screen_w - box_w) // 2
         box_y = (screen_h - box_h) // 2
         
         # Background Panel
         panel_rect = pygame.Rect(box_x, box_y, box_w, box_h)
-        pygame.draw.rect(screen, (240, 230, 200), panel_rect, border_radius=20) # Warna Parchment
-        pygame.draw.rect(screen, (101, 67, 33), panel_rect, 8, border_radius=20) # Bingkai Kayu
+        pygame.draw.rect(screen, (240, 230, 200), panel_rect, border_radius=20)
+        pygame.draw.rect(screen, (101, 67, 33), panel_rect, 8, border_radius=20)
 
         # Header: Nyawa
         heart_text = "❤" * self.lives
@@ -159,8 +202,13 @@ class MathQuiz:
         lives_surf = self.font_title.render(heart_text + lost_heart, True, (200, 50, 50))
         screen.blit(lives_surf, (box_x + 20, box_y + 20))
 
-        # Header: Progress
+        # Header: Level & Progress
+        level_text = f"LEVEL {self.level}"
         prog_text = f"Soal: {self.correct_answers + 1}/{self.questions_needed}"
+        
+        lvl_surf = self.font_small.render(level_text, True, (0, 0, 150))
+        screen.blit(lvl_surf, (box_x + box_w // 2 - lvl_surf.get_width()//2, box_y + 20))
+        
         prog_surf = self.font_small.render(prog_text, True, (100, 80, 60))
         prog_rect = prog_surf.get_rect(topright=(box_x + box_w - 20, box_y + 25))
         screen.blit(prog_surf, prog_rect)
@@ -180,17 +228,25 @@ class MathQuiz:
         screen.blit(ans_surf, ans_rect)
 
         # Footer Instruction
-        hint = self.font_small.render("Jawab dengan benar untuk membuka segel pintu...", True, (120, 100, 80))
+        hint = self.font_small.render("Jawab dengan benar untuk membuka segel...", True, (120, 100, 80))
         hint_rect = hint.get_rect(center=(screen_w//2, box_y + 300))
         screen.blit(hint, hint_rect)
 
-def run_game(screen):
-    """Loop Game Utama"""
+def run_game(screen, level=1):
+    """Loop Game Utama dengan parameter Level"""
     clock = pygame.time.Clock()
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
-    # Generate Maze
-    maze_cols, maze_rows = 25, 21
+    # Generate Maze (Ukuran bertambah sesuai level)
+    # Level 1: Kecil, Level 5: Besar
+    base_w, base_h = 17, 13
+    maze_cols = base_w + ((level - 1) * 4)
+    maze_rows = base_h + ((level - 1) * 2)
+    
+    # Pastikan ukuran ganjil untuk algoritma maze
+    if maze_cols % 2 == 0: maze_cols += 1
+    if maze_rows % 2 == 0: maze_rows += 1
+
     maze_data, w, h = map_labirin.generate_maze(maze_cols, maze_rows)
     
     wall_sprites = pygame.sprite.Group()
@@ -198,21 +254,17 @@ def run_game(screen):
     door_sprite = None
     portal_sprite = None
 
-    # --- SETUP MAP, PINTU, & FINISH (LOGIKA ANTI-CURANG) ---
-    
-    # 1. Cari titik Finish (pojok kanan bawah yang kosong)
+    # --- SETUP MAP, PINTU, & FINISH ---
     finish_x, finish_y = w - 2, h - 2
     while maze_data[finish_y][finish_x] == 1: 
         finish_x -= 1
     
-    # 2. Pathfinding (BFS) dari Start (1,1) ke Finish
-    # Tujuannya: Menemukan dari arah mana player DATANG
     queue = [(1, 1)]
     visited = set([(1, 1)])
-    parent_map = {} # Untuk melacak langkah sebelumnya
+    parent_map = {} 
     
     found_path = False
-    offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)] # Kiri, Kanan, Atas, Bawah
+    offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
     while queue:
         cx, cy = queue.pop(0)
@@ -228,24 +280,17 @@ def run_game(screen):
                     parent_map[(nx, ny)] = (cx, cy)
                     queue.append((nx, ny))
 
-    # 3. Tentukan Pintu & Tutup Celah Lain
     door_x, door_y = 0, 0
     if found_path:
-        # Mundur 1 langkah dari Finish = Posisi Pintu yang valid
         door_x, door_y = parent_map[(finish_x, finish_y)]
-        
-        # CEGAH KECURANGAN:
-        # Ubah semua tetangga Finish yang BUKAN pintu menjadi Tembok
         for ox, oy in offsets:
             nx, ny = finish_x + ox, finish_y + oy
             if 0 <= nx < w and 0 <= ny < h:
                 if (nx, ny) != (door_x, door_y):
-                    maze_data[ny][nx] = 1 # Force Wall
+                    maze_data[ny][nx] = 1 
     else:
-        # Fallback (jika labirin tidak sempurna, jarang terjadi)
         door_x, door_y = finish_x - 1, finish_y
 
-    # 4. Generate Sprite berdasarkan maze_data yang sudah dimodifikasi
     for row in range(h):
         for col in range(w):
             floor = map_labirin.GrassTile(col, row)
@@ -263,7 +308,6 @@ def run_game(screen):
                 wall = map_labirin.DetailedWall(col, row)
                 wall_sprites.add(wall)
                 
-    # Posisi Spawn Player
     spawn_tile_x, spawn_tile_y = 1, 1
     px = spawn_tile_x * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
     py = spawn_tile_y * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
@@ -278,7 +322,8 @@ def run_game(screen):
     facing_right = True
     anim_state = 2 
 
-    math_quiz = MathQuiz()
+    # Inisialisasi Kuis sesuai Level
+    math_quiz = MathQuiz(level)
 
     class GameCamera:
         def __init__(self, width, height, screen_w, screen_h):
@@ -327,10 +372,10 @@ def run_game(screen):
                         door_sprite.is_opening = True
 
         if is_victory:
-            pass # Freeze saat menang
+            pass 
 
         elif math_quiz.active:
-            pass # Freeze saat kuis
+            pass 
 
         else:
             if door_sprite:
@@ -355,7 +400,6 @@ def run_game(screen):
             elif keys[pygame.K_DOWN]:
                 dy = PLAYER_SPEED; anim_state = 2; is_moving = True
 
-            # Collision Logic
             player_hitbox.x += dx
             hits = pygame.sprite.spritecollide(type('obj', (object,), {'rect': player_hitbox}), wall_sprites, False)
             for wall in hits:
@@ -415,6 +459,10 @@ def run_game(screen):
             font_ui = pygame.font.SysFont("Arial", 20)
             text_esc = font_ui.render("ESC: Menu", True, (255, 255, 255))
             screen.blit(text_esc, (20, 20))
+            
+            # Tampilkan Level di HUD
+            text_lvl = font_ui.render(f"LEVEL {level}", True, (255, 215, 0))
+            screen.blit(text_lvl, (SCREEN_WIDTH - 100, 20))
 
         pygame.display.flip()
         clock.tick(FPS)
@@ -446,7 +494,7 @@ def draw_overlay_message(screen, title, subtitle, color_bg):
     pygame.display.flip()
     pygame.time.delay(3000) 
 
-# --- MAIN MENU ---
+# --- MAIN MENU & LEVEL SELECT ---
 def main_menu():
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -457,67 +505,120 @@ def main_menu():
     bg_map = create_background_map(w, h)
     
     running = True
-    current_state = "MENU"
+    
+    # SYSTEM LEVEL
+    unlocked_level = 1
+    selected_level = 1
+    
+    # State: MAIN, LEVEL_SELECT, GAME
+    menu_state = "MAIN" 
 
-    def start_game_action():
-        nonlocal current_state
-        current_state = "GAME"
+    def btn_start_action():
+        nonlocal menu_state
+        menu_state = "LEVEL_SELECT"
 
-    def quit_game_action():
+    def btn_quit_action():
         nonlocal running
         running = False
-
-    btn_play = Button("MULAI PETUALANGAN", w//2, h//2, 350, 80, start_game_action)
-    btn_quit = Button("KELUAR", w//2, h//2 + 120, 350, 80, quit_game_action)
-    buttons = [btn_play, btn_quit]
+        
+    def btn_level_action(lvl):
+        nonlocal selected_level, menu_state
+        selected_level = lvl
+        menu_state = "GAME"
+        
+    def btn_back_action():
+        nonlocal menu_state
+        menu_state = "MAIN"
 
     title_font = pygame.font.SysFont("Verdana", 80, bold=True)
     subtitle_font = pygame.font.SysFont("Arial", 30, italic=True)
 
     while running:
-        if current_state == "GAME":
-            result = run_game(screen)
+        # LOGIKA GAME LOOP
+        if menu_state == "GAME":
+            result = run_game(screen, selected_level)
             if result == "QUIT":
                 running = False
             elif result == "GAME_OVER":
-                draw_overlay_message(screen, "GAGAL!", "Kamu kehabisan kesempatan...", (200, 50, 50))
-                current_state = "GAME" 
+                draw_overlay_message(screen, "GAGAL!", "Jangan menyerah, coba lagi!", (200, 50, 50))
+                menu_state = "LEVEL_SELECT" 
             elif result == "VICTORY":
-                draw_overlay_message(screen, "SELAMAT!", "Kamu berhasil menaklukkan labirin!", (50, 200, 100))
-                current_state = "MENU"
+                msg_sub = "Level Selesai!"
+                if selected_level == unlocked_level and unlocked_level < 5:
+                    unlocked_level += 1
+                    msg_sub = "Level Berikutnya Terbuka!"
+                elif selected_level == 5:
+                    msg_sub = "Kamu telah menamatkan semua level!"
+                    
+                draw_overlay_message(screen, "SUKSES!", msg_sub, (50, 200, 100))
+                menu_state = "LEVEL_SELECT"
             else:
-                current_state = "MENU" 
+                menu_state = "MAIN" 
+            
             pygame.mouse.set_visible(True)
             continue
 
+        # LOGIKA MENU
         mouse_pos = pygame.mouse.get_pos()
-        for event in pygame.event.get():
+        events = pygame.event.get()
+        for event in events:
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for btn in buttons:
-                        btn.click()
-
-        for btn in buttons:
-            btn.check_hover(mouse_pos)
 
         screen.fill(COLOR_SKY_TOP)
         pygame.draw.rect(screen, COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
         screen.blit(bg_map, (0, h - bg_map.get_height()))
-        
+
+        # JUDUL
         title_surf = title_font.render("ARITHM-ADVENTURE", True, (255, 215, 0))
         title_shadow = title_font.render("ARITHM-ADVENTURE", True, (0, 0, 0))
         title_rect = title_surf.get_rect(center=(w//2, h//4))
         screen.blit(title_shadow, (title_rect.x + 4, title_rect.y + 4))
         screen.blit(title_surf, title_rect)
 
-        sub_surf = subtitle_font.render("Edisi Layar Lebar & Zoom", True, (200, 230, 255))
-        sub_rect = sub_surf.get_rect(center=(w//2, h//4 + 70))
-        screen.blit(sub_surf, sub_rect)
+        # RENDER TOMBOL BERDASARKAN STATE
+        current_buttons = []
+        
+        if menu_state == "MAIN":
+            sub_surf = subtitle_font.render("Belajar Matematika Sambil Bertualang", True, (200, 230, 255))
+            screen.blit(sub_surf, sub_surf.get_rect(center=(w//2, h//4 + 70)))
+            
+            btn_play = Button("MULAI PERMAINAN", w//2, h//2, 350, 80, btn_start_action)
+            btn_quit = Button("KELUAR", w//2, h//2 + 120, 350, 80, btn_quit_action)
+            current_buttons = [btn_play, btn_quit]
+            
+        elif menu_state == "LEVEL_SELECT":
+            sub_surf = subtitle_font.render("Pilih Level Tantanganmu", True, (200, 230, 255))
+            screen.blit(sub_surf, sub_surf.get_rect(center=(w//2, h//4 + 70)))
+            
+            # Buat tombol level 1-5
+            start_y = h//2 - 50
+            gap = 120
+            
+            # Baris 1: Level 1, 2, 3
+            l1 = Button("LEVEL 1", w//2 - gap, start_y, 100, 80, lambda: btn_level_action(1), enabled=(1 <= unlocked_level), font_size=20)
+            l2 = Button("LEVEL 2", w//2,       start_y, 100, 80, lambda: btn_level_action(2), enabled=(2 <= unlocked_level), font_size=20)
+            l3 = Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: btn_level_action(3), enabled=(3 <= unlocked_level), font_size=20)
+            
+            # Baris 2: Level 4, 5
+            l4 = Button("LEVEL 4", w//2 - gap//2 - 20, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
+            l5 = Button("LEVEL 5", w//2 + gap//2 + 20, start_y + 100, 140, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
+            
+            btn_back = Button("KEMBALI", w//2, h - 100, 200, 60, btn_back_action)
+            
+            current_buttons = [l1, l2, l3, l4, l5, btn_back]
 
-        for btn in buttons:
+        # Update & Draw Buttons
+        for btn in current_buttons:
+            btn.check_hover(mouse_pos)
             btn.draw(screen)
+        
+        # Event Klik
+        for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    for btn in current_buttons:
+                        btn.click()
 
         pygame.display.flip()
         clock.tick(FPS)
