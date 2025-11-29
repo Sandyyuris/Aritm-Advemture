@@ -1,11 +1,8 @@
 import pygame
 import random
 
-# --- KONFIGURASI MAP (ZOOMED IN) ---
-# Ukuran tetap 100 agar tampilan tetap 'dekat' (Zoomed)
 TILE_SIZE = 100 
 
-# Warna Utama
 COLOR_WALL_BASE = (255, 215, 0)      # Emas
 COLOR_WALL_OUTLINE = (184, 134, 11)  # Coklat Emas
 COLOR_GRASS_BASE = (100, 180, 50)    # Hijau Dasar
@@ -13,7 +10,7 @@ COLOR_GRASS_BASE = (100, 180, 50)    # Hijau Dasar
 # Warna Detail Rumput (Variasi)
 COLOR_GRASS_DARK = (80, 160, 40)
 COLOR_GRASS_LIGHT = (130, 210, 80)
-COLOR_DIRT = (120, 100, 50) # Sedikit bercak tanah
+COLOR_DIRT = (120, 100, 50) 
 
 class GrassTile(pygame.sprite.Sprite):
     def __init__(self, x, y):
