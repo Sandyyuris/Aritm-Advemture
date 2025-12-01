@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+import cairo
 
 TILE_SIZE = 100 
 
@@ -11,22 +12,50 @@ COLOR_GRASS_DARK = (80, 160, 40)
 COLOR_GRASS_LIGHT = (130, 210, 80)
 COLOR_DIRT = (120, 100, 50) 
 
+def hex_to_rgb_norm(rgb_tuple):
+    return (rgb_tuple[0]/255, rgb_tuple[1]/255, rgb_tuple[2]/255)
+
+def cairo_to_pygame(surface):
+    surface.flush()
+    data = surface.get_data()
+    return pygame.image.frombuffer(data, (surface.get_width(), surface.get_height()), "BGRA")
+
 class GrassTile(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(COLOR_GRASS_BASE)
+        # Setup Cairo
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, TILE_SIZE, TILE_SIZE)
+        ctx = cairo.Context(surface)
+        
+        # Base Color
+        ctx.rectangle(0, 0, TILE_SIZE, TILE_SIZE)
+        ctx.set_source_rgb(*hex_to_rgb_norm(COLOR_GRASS_BASE))
+        ctx.fill()
+        
+        # Dirt Spots
+        ctx.set_source_rgb(*hex_to_rgb_norm(COLOR_DIRT))
         for _ in range(10):
             dx = random.randint(0, TILE_SIZE-5)
             dy = random.randint(0, TILE_SIZE-5)
-            pygame.draw.rect(self.image, COLOR_DIRT, (dx, dy, 4, 4))
+            ctx.rectangle(dx, dy, 4, 4)
+            ctx.fill()
+            
+        # Grass Blades
+        ctx.set_line_width(3)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         for _ in range(40):
             gx = random.randint(5, TILE_SIZE-5)
             gy = random.randint(10, TILE_SIZE-5)
             color = random.choice([COLOR_GRASS_DARK, COLOR_GRASS_LIGHT])
             tilt = random.randint(-5, 5) 
             height = random.randint(8, 15)
-            pygame.draw.line(self.image, color, (gx, gy), (gx + tilt, gy - height), 3)
+            
+            ctx.set_source_rgb(*hex_to_rgb_norm(color))
+            ctx.move_to(gx, gy)
+            ctx.line_to(gx + tilt, gy - height)
+            ctx.stroke()
+            
+        self.image = cairo_to_pygame(surface)
         self.rect = self.image.get_rect()
         self.rect.x = x * TILE_SIZE
         self.rect.y = y * TILE_SIZE
@@ -34,14 +63,51 @@ class GrassTile(pygame.sprite.Sprite):
 class DetailedWall(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE))
-        self.image.fill(COLOR_WALL_BASE)
-        pygame.draw.rect(self.image, COLOR_WALL_OUTLINE, (0, 0, TILE_SIZE, TILE_SIZE), 5)
-        pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (0, TILE_SIZE//2), (TILE_SIZE, TILE_SIZE//2), 4)
-        pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (TILE_SIZE//2, 0), (TILE_SIZE//2, TILE_SIZE//2), 4)
-        pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (TILE_SIZE//4, TILE_SIZE//2), (TILE_SIZE//4, TILE_SIZE), 4)
-        pygame.draw.line(self.image, COLOR_WALL_OUTLINE, (TILE_SIZE*3//4, TILE_SIZE//2), (TILE_SIZE*3//4, TILE_SIZE), 4)
-        pygame.draw.line(self.image, (218, 165, 32), (5, TILE_SIZE//2 + 5), (TILE_SIZE-5, TILE_SIZE//2 + 5), 2)
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, TILE_SIZE, TILE_SIZE)
+        ctx = cairo.Context(surface)
+
+        # Fill Base
+        ctx.rectangle(0, 0, TILE_SIZE, TILE_SIZE)
+        ctx.set_source_rgb(*hex_to_rgb_norm(COLOR_WALL_BASE))
+        ctx.fill()
+
+        # Outline & Detail Lines
+        ctx.set_source_rgb(*hex_to_rgb_norm(COLOR_WALL_OUTLINE))
+        
+        # Border (5px)
+        ctx.set_line_width(5)
+        ctx.rectangle(0, 0, TILE_SIZE, TILE_SIZE)
+        ctx.stroke()
+        
+        # Brick Pattern
+        ctx.set_line_width(4)
+        
+        # Horizontal lines
+        ctx.move_to(0, TILE_SIZE/2)
+        ctx.line_to(TILE_SIZE, TILE_SIZE/2)
+        ctx.stroke()
+        
+        # Vertical lines
+        ctx.move_to(TILE_SIZE/2, 0)
+        ctx.line_to(TILE_SIZE/2, TILE_SIZE/2)
+        ctx.stroke()
+        
+        ctx.move_to(TILE_SIZE/4, TILE_SIZE/2)
+        ctx.line_to(TILE_SIZE/4, TILE_SIZE)
+        ctx.stroke()
+        
+        ctx.move_to(TILE_SIZE*3/4, TILE_SIZE/2)
+        ctx.line_to(TILE_SIZE*3/4, TILE_SIZE)
+        ctx.stroke()
+        
+        # Accent Line
+        ctx.set_source_rgb(*hex_to_rgb_norm((218, 165, 32)))
+        ctx.set_line_width(2)
+        ctx.move_to(5, TILE_SIZE/2 + 5)
+        ctx.line_to(TILE_SIZE-5, TILE_SIZE/2 + 5)
+        ctx.stroke()
+
+        self.image = cairo_to_pygame(surface)
         self.rect = self.image.get_rect()
         self.rect.x = x * TILE_SIZE
         self.rect.y = y * TILE_SIZE
@@ -49,74 +115,95 @@ class DetailedWall(pygame.sprite.Sprite):
 class Door(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-        self.rect = self.image.get_rect()
-        self.rect.x = x * TILE_SIZE
-        self.rect.y = y * TILE_SIZE
+        # Placeholder surface, will be replaced by redraw
+        self.image = None
+        self.rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
         
         self.is_opening = False
-        self.open_progress = 0 # 0 sampai TILE_SIZE//2
+        self.open_progress = 0 
         self.finished_opening = False
         
         self.redraw()
 
     def update(self):
         if self.is_opening and not self.finished_opening:
-            self.open_progress += 2 # Kecepatan animasi
+            self.open_progress += 2 
             if self.open_progress >= TILE_SIZE // 2:
                 self.open_progress = TILE_SIZE // 2
                 self.finished_opening = True
             self.redraw()
 
     def redraw(self):
-        self.image.fill((0,0,0,0)) # Clear transparan
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, TILE_SIZE, TILE_SIZE)
+        ctx = cairo.Context(surface)
         
-        # Hitung lebar panel pintu saat ini (semakin progress nambah, semakin kecil)
+        # Hitung lebar panel
         panel_width = (TILE_SIZE // 2) - self.open_progress
         
         if panel_width > 0:
+            ctx.set_line_width(4)
+            
+            # Helper function untuk menggambar panel pintu
+            def draw_panel(px, py, pw, ph):
+                ctx.rectangle(px, py, pw, ph)
+                ctx.set_source_rgb(*hex_to_rgb_norm((101, 67, 33))) # Coklat Tua
+                ctx.fill_preserve()
+                ctx.set_source_rgb(*hex_to_rgb_norm((60, 40, 20))) # Border
+                ctx.stroke()
+
             # Panel Kiri
-            left_rect = pygame.Rect(0, 0, panel_width, TILE_SIZE)
-            pygame.draw.rect(self.image, (101, 67, 33), left_rect) # Coklat Tua
-            pygame.draw.rect(self.image, (60, 40, 20), left_rect, 4) # Border
+            draw_panel(0, 0, panel_width, TILE_SIZE)
             
             # Panel Kanan
-            right_rect = pygame.Rect(TILE_SIZE - panel_width, 0, panel_width, TILE_SIZE)
-            pygame.draw.rect(self.image, (101, 67, 33), right_rect)
-            pygame.draw.rect(self.image, (60, 40, 20), right_rect, 4)
+            draw_panel(TILE_SIZE - panel_width, 0, panel_width, TILE_SIZE)
             
-            # Gagang Pintu (Ikut bergeser)
+            # Gagang Pintu
             if panel_width > 10:
-                pygame.draw.circle(self.image, (255, 215, 0), (panel_width - 10, TILE_SIZE//2), 6) # Kiri
-                pygame.draw.circle(self.image, (255, 215, 0), (TILE_SIZE - panel_width + 10, TILE_SIZE//2), 6) # Kanan
+                ctx.set_source_rgb(*hex_to_rgb_norm((255, 215, 0)))
+                
+                # Kiri
+                ctx.arc(panel_width - 10, TILE_SIZE/2, 6, 0, 2*math.pi)
+                ctx.fill()
+                
+                # Kanan
+                ctx.arc(TILE_SIZE - panel_width + 10, TILE_SIZE/2, 6, 0, 2*math.pi)
+                ctx.fill()
+        
+        self.image = cairo_to_pygame(surface)
 
 class Portal(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((TILE_SIZE, TILE_SIZE), pygame.SRCALPHA)
-        self.rect = self.image.get_rect()
-        self.rect.x = x * TILE_SIZE
-        self.rect.y = y * TILE_SIZE
+        self.image = None
+        self.rect = pygame.Rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE)
         self.timer = 0
-        
+        self.update() # Init image
+
     def update(self):
         self.timer += 0.1
-        self.image.fill((0,0,0,0))
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, TILE_SIZE, TILE_SIZE)
+        ctx = cairo.Context(surface)
         
-        center = (TILE_SIZE//2, TILE_SIZE//2)
+        cx, cy = TILE_SIZE/2, TILE_SIZE/2
         
         # Efek putaran portal
         max_radius = TILE_SIZE // 2 - 5
         for i in range(3):
             radius = max_radius - (i * 10) + (math.sin(self.timer + i) * 3)
-            alpha = 150 + int(math.sin(self.timer * 2 + i) * 100)
-            color = (100, 200, 255, alpha) # Biru langit bercahaya
+            alpha = 0.6 + (math.sin(self.timer * 2 + i) * 0.4) # 0.0 - 1.0 for Cairo alpha
             
-            pygame.draw.circle(self.image, color, center, int(radius), 4)
+            ctx.set_source_rgba(100/255, 200/255, 255/255, alpha)
+            ctx.set_line_width(4)
+            ctx.arc(cx, cy, radius, 0, 2*math.pi)
+            ctx.stroke()
         
         # Inti portal
         core_radius = 10 + abs(math.sin(self.timer * 3) * 5)
-        pygame.draw.circle(self.image, (255, 255, 255), center, int(core_radius))
+        ctx.set_source_rgb(1, 1, 1)
+        ctx.arc(cx, cy, core_radius, 0, 2*math.pi)
+        ctx.fill()
+        
+        self.image = cairo_to_pygame(surface)
 
 def generate_maze(width, height):
     w = width if width % 2 != 0 else width + 1
