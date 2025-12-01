@@ -4,110 +4,12 @@ import math
 import random
 
 # --- IMPORT MODULE ---
-# Pastikan file map_labirin.py dan animasi_jalan.py berada di folder yang sama
 import map_labirin
 import animasi_jalan
+import ui_assets  # <-- Module baru kita
 
 # --- KONFIGURASI UMUM ---
 FPS = 60
-
-# WARNA UI
-COLOR_SKY_TOP = (0, 102, 204)
-COLOR_SKY_BOTTOM = (100, 180, 255)
-COLOR_BTN_BASE = (255, 200, 0)
-COLOR_BTN_HOVER = (255, 230, 50)
-COLOR_BTN_HIGHLIGHT = (255, 255, 180)
-COLOR_BTN_SHADOW = (180, 130, 0)
-COLOR_BTN_DISABLED = (150, 150, 150)
-COLOR_TEXT = (50, 30, 10)
-
-def create_background_map(screen_w, screen_h):
-    """Membuat surface background yang berisi map labirin transparan"""
-    bg_tile_size = 60
-    cols = screen_w // bg_tile_size + 2
-    rows = (screen_h // 2) // bg_tile_size + 2
-
-    maze_data, w, h = map_labirin.generate_maze(cols, rows)
-    
-    map_surface = pygame.Surface((w * bg_tile_size, h * bg_tile_size))
-    map_surface.fill((0, 0, 0))
-    map_surface.set_colorkey((0,0,0))
-    for r in range(h):
-        for c in range(w):
-            x = c * bg_tile_size
-            y = r * bg_tile_size
-            pygame.draw.rect(map_surface, (100, 180, 50), (x, y, bg_tile_size, bg_tile_size))
-            if maze_data[r][c] == 1:
-                pygame.draw.rect(map_surface, (255, 215, 0), (x, y, bg_tile_size, bg_tile_size))
-                pygame.draw.rect(map_surface, (184, 134, 11), (x, y, bg_tile_size, bg_tile_size), 4)
-                pygame.draw.line(map_surface, (184, 134, 11), (x, y+bg_tile_size//2), (x+bg_tile_size, y+bg_tile_size//2), 2)
-    map_surface.set_alpha(100)
-    return map_surface
-
-# --- FUNGSI GAMBAR BANTUAN ---
-def draw_heart(surface, x, y, size, color):
-    """Menggambar bentuk hati yang cantik"""
-    radius = size // 4
-    circle_offset = int(radius * 0.8)
-    
-    # Lingkaran kiri & kanan
-    pygame.draw.circle(surface, color, (x - circle_offset, y - radius), radius)
-    pygame.draw.circle(surface, color, (x + circle_offset, y - radius), radius)
-    
-    # Segitiga bawah
-    points = [
-        (x - size // 2, y - radius * 0.8), 
-        (x + size // 2, y - radius * 0.8), 
-        (x, y + size // 2)                 
-    ]
-    pygame.draw.polygon(surface, color, points)
-
-class Button:
-    def __init__(self, text, x, y, width, height, action=None, enabled=True, font_size=30):
-        self.text = text
-        self.rect = pygame.Rect(0, 0, width, height)
-        self.rect.center = (x, y)
-        self.action = action
-        self.is_hovered = False
-        self.enabled = enabled
-        self.font = pygame.font.SysFont("Arial", font_size, bold=True)
-
-    def draw(self, screen):
-        if self.enabled:
-            color = COLOR_BTN_HOVER if self.is_hovered else COLOR_BTN_BASE
-            shadow_color = COLOR_BTN_SHADOW
-        else:
-            color = COLOR_BTN_DISABLED
-            shadow_color = (100, 100, 100)
-
-        shadow_rect = self.rect.copy()
-        shadow_rect.y += 6
-        pygame.draw.rect(screen, shadow_color, shadow_rect, border_radius=15)
-        pygame.draw.rect(screen, color, self.rect, border_radius=15)
-        
-        if self.enabled:
-            highlight_rect = pygame.Rect(self.rect.x + 5, self.rect.y + 5, self.rect.width - 10, self.rect.height // 2 - 5)
-            pygame.draw.rect(screen, COLOR_BTN_HIGHLIGHT, highlight_rect, border_radius=10)
-        
-        text_color = COLOR_TEXT if self.enabled else (100, 100, 100)
-        text_surf = self.font.render(self.text, True, text_color)
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
-        
-        if not self.enabled:
-            lock_surf = self.font.render("🔒", True, (80, 80, 80))
-            lock_rect = lock_surf.get_rect(midbottom=(self.rect.centerx, self.rect.top - 5))
-            screen.blit(lock_surf, lock_rect)
-
-    def check_hover(self, mouse_pos):
-        if self.enabled:
-            self.is_hovered = self.rect.collidepoint(mouse_pos)
-        else:
-            self.is_hovered = False
-
-    def click(self):
-        if self.enabled and self.is_hovered and self.action:
-            self.action()
 
 class MathQuiz:
     def __init__(self, level):
@@ -189,7 +91,7 @@ class MathQuiz:
         overlay.set_alpha(180)
         screen.blit(overlay, (0, 0))
 
-        # --- Panel Kuis (Tampilan Papan Kayu) ---
+        # --- Panel Kuis ---
         box_w, box_h = 550, 400
         box_x = (screen_w - box_w) // 2
         box_y = (screen_h - box_h) // 2
@@ -211,10 +113,11 @@ class MathQuiz:
         for i in range(self.max_lives):
             hx = heart_start_x + (i * heart_spacing)
             if i < self.lives:
-                draw_heart(screen, hx, heart_start_y, 35, (220, 20, 60)) 
+                # Menggunakan ui_assets
+                ui_assets.draw_heart(screen, hx, heart_start_y, 35, (220, 20, 60)) 
                 pygame.draw.circle(screen, (255, 200, 200), (hx - 8, heart_start_y - 8), 4)
             else:
-                draw_heart(screen, hx, heart_start_y, 35, (80, 70, 60)) 
+                ui_assets.draw_heart(screen, hx, heart_start_y, 35, (80, 70, 60)) 
 
         # Level Info
         level_surf = self.font_small.render(f"LEVEL {self.level}", True, (255, 255, 200))
@@ -224,7 +127,7 @@ class MathQuiz:
         prog_surf = self.font_small.render(progress_text, True, (255, 255, 200))
         screen.blit(prog_surf, (box_x + box_w - 150, box_y + 70))
 
-        # --- Pertanyaan (Kertas Perkamen) ---
+        # --- Pertanyaan ---
         paper_rect = pygame.Rect(box_x + 50, box_y + 110, box_w - 100, 180)
         pygame.draw.rect(screen, (240, 230, 200), paper_rect, border_radius=5)
         
@@ -237,8 +140,6 @@ class MathQuiz:
         pygame.draw.rect(screen, (255, 255, 255), input_box, border_radius=10)
         pygame.draw.rect(screen, (0, 0, 0), input_box, 2, border_radius=10)
         
-        # MODIFIKASI: Menghapus cursor "|" yang kedip-kedip
-        # Agar teks tidak geser-geser saat cursor muncul/hilang
         ans_surf = self.font_big.render(self.user_input, True, (0, 0, 0))
         ans_rect = ans_surf.get_rect(center=input_box.center)
         screen.blit(ans_surf, ans_rect)
@@ -359,8 +260,10 @@ def run_game(screen, level=1):
     player_hitbox.center = (px, py)
 
     game_paused = False
-    btn_resume = Button("LANJUTKAN", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 30, 250, 70, lambda: None, font_size=25)
-    btn_quit_lvl = Button("KELUAR KE MENU", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 60, 250, 70, lambda: None, font_size=25)
+    
+    # Menggunakan Button dari ui_assets
+    btn_resume = ui_assets.Button("LANJUTKAN", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 30, 250, 70, lambda: None, font_size=25)
+    btn_quit_lvl = ui_assets.Button("KELUAR KE MENU", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 60, 250, 70, lambda: None, font_size=25)
     pause_buttons = [btn_resume, btn_quit_lvl]
 
     running = True
@@ -521,12 +424,8 @@ def animate_victory_screen(screen, level):
     
     while running:
         frame_count += 1
-        screen.fill((20, 20, 30)) # Background gelap
-
-        # MODIFIKASI: Menghilangkan bintang dan bola-bola partikel
-        # Hanya menampilkan tulisan LEVEL COMPLETE sederhana namun tetap menarik
+        screen.fill((20, 20, 30)) 
         
-        # Efek scaling halus pada teks agar tidak terlalu statis
         scale = 1.0 + 0.02 * math.sin(frame_count * 0.05)
         
         title_text = "LEVEL COMPLETE!"
@@ -551,7 +450,6 @@ def animate_victory_screen(screen, level):
             sub_rect = sub_surf.get_rect(center=(w//2, h//2 + 60))
             screen.blit(sub_surf, sub_rect)
 
-        # Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "QUIT"
@@ -605,7 +503,9 @@ def main_menu():
     
     w, h = screen.get_size()
     clock = pygame.time.Clock()
-    bg_map = create_background_map(w, h)
+    
+    # Menggunakan ui_assets untuk background
+    bg_map = ui_assets.create_background_map(w, h)
     
     running = True
     
@@ -661,8 +561,9 @@ def main_menu():
             if event.type == pygame.QUIT:
                 running = False
 
-        screen.fill(COLOR_SKY_TOP)
-        pygame.draw.rect(screen, COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
+        # Menggunakan warna dari ui_assets
+        screen.fill(ui_assets.COLOR_SKY_TOP)
+        pygame.draw.rect(screen, ui_assets.COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
         screen.blit(bg_map, (0, h - bg_map.get_height()))
 
         title_surf = title_font.render("ARITHM-ADVENTURE", True, (255, 215, 0))
@@ -677,8 +578,9 @@ def main_menu():
             sub_surf = subtitle_font.render("Belajar Matematika Sambil Bertualang", True, (200, 230, 255))
             screen.blit(sub_surf, sub_surf.get_rect(center=(w//2, h//4 + 70)))
             
-            btn_play = Button("MULAI PERMAINAN", w//2, h//2, 350, 80, btn_start_action)
-            btn_quit = Button("KELUAR", w//2, h//2 + 120, 350, 80, btn_quit_action)
+            # Menggunakan ui_assets.Button
+            btn_play = ui_assets.Button("MULAI PERMAINAN", w//2, h//2, 350, 80, btn_start_action)
+            btn_quit = ui_assets.Button("KELUAR", w//2, h//2 + 120, 350, 80, btn_quit_action)
             current_buttons = [btn_play, btn_quit]
             
         elif menu_state == "LEVEL_SELECT":
@@ -688,14 +590,14 @@ def main_menu():
             start_y = h//2 - 50
             gap = 120
             
-            l1 = Button("LEVEL 1", w//2 - gap, start_y, 100, 80, lambda: btn_level_action(1), enabled=(1 <= unlocked_level), font_size=20)
-            l2 = Button("LEVEL 2", w//2,       start_y, 100, 80, lambda: btn_level_action(2), enabled=(2 <= unlocked_level), font_size=20)
-            l3 = Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: btn_level_action(3), enabled=(3 <= unlocked_level), font_size=20)
+            l1 = ui_assets.Button("LEVEL 1", w//2 - gap, start_y, 100, 80, lambda: btn_level_action(1), enabled=(1 <= unlocked_level), font_size=20)
+            l2 = ui_assets.Button("LEVEL 2", w//2,       start_y, 100, 80, lambda: btn_level_action(2), enabled=(2 <= unlocked_level), font_size=20)
+            l3 = ui_assets.Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: btn_level_action(3), enabled=(3 <= unlocked_level), font_size=20)
             
-            l4 = Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
-            l5 = Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
+            l4 = ui_assets.Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
+            l5 = ui_assets.Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
             
-            btn_back = Button("KEMBALI", w//2, h - 100, 200, 60, btn_back_action)
+            btn_back = ui_assets.Button("KEMBALI", w//2, h - 100, 200, 60, btn_back_action)
             
             current_buttons = [l1, l2, l3, l4, l5, btn_back]
 
