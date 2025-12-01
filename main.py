@@ -1,8 +1,5 @@
 import pygame
 import sys
-import random
-
-
 import map_labirin
 import animasi_jalan
 import ui_assets
@@ -10,14 +7,16 @@ import quiz
 import screens     
 import camera     
 
-# --- KONFIGURASI UMUM ---
 FPS = 60
+CHAR_VISUAL_WIDTH, CHAR_VISUAL_HEIGHT = 130, 160
+HITBOX_WIDTH, HITBOX_HEIGHT = 50, 30
+PLAYER_SPEED = 8
 
 def run_game(screen, level=1):
     clock = pygame.time.Clock()
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
-    # --- SETUP MAP ---
+    # Setup Map Dimension
     base_w, base_h = 17, 13
     maze_cols = base_w + ((level - 1) * 4)
     maze_rows = base_h + ((level - 1) * 2)
@@ -36,9 +35,9 @@ def run_game(screen, level=1):
     while maze_data[finish_y][finish_x] == 1: 
         finish_x -= 1
     
-    # Pathfinding untuk memastikan ada jalan ke pintu
+    # Pathfinding untuk menjamin akses ke pintu/portal
     queue = [(1, 1)]
-    visited = set([(1, 1)])
+    visited = {(1, 1)}
     parent_map = {} 
     found_path = False
     offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
@@ -59,60 +58,45 @@ def run_game(screen, level=1):
     door_x, door_y = 0, 0
     if found_path:
         door_x, door_y = parent_map[(finish_x, finish_y)]
+        # Pastikan area sekitar pintu terbuka
         for ox, oy in offsets:
             nx, ny = finish_x + ox, finish_y + oy
-            if 0 <= nx < w and 0 <= ny < h:
-                if (nx, ny) != (door_x, door_y):
-                    maze_data[ny][nx] = 1 
+            if 0 <= nx < w and 0 <= ny < h and (nx, ny) != (door_x, door_y):
+                maze_data[ny][nx] = 1 
     else:
         door_x, door_y = finish_x - 1, finish_y
 
+    # Instansiasi Sprite
     for row in range(h):
         for col in range(w):
-            floor = map_labirin.GrassTile(col, row)
-            floor_sprites.add(floor)
+            floor_sprites.add(map_labirin.GrassTile(col, row))
             
             if row == finish_y and col == finish_x:
                 portal_sprite = map_labirin.Portal(col, row)
                 floor_sprites.add(portal_sprite) 
-
             elif row == door_y and col == door_x:
                 door_sprite = map_labirin.Door(col, row)
                 wall_sprites.add(door_sprite) 
-            
             elif maze_data[row][col] == 1:
-                wall = map_labirin.DetailedWall(col, row)
-                wall_sprites.add(wall)
+                wall_sprites.add(map_labirin.DetailedWall(col, row))
                 
-    spawn_tile_x, spawn_tile_y = 1, 1
-    px = spawn_tile_x * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
-    py = spawn_tile_y * map_labirin.TILE_SIZE + map_labirin.TILE_SIZE // 2
-
-    # --- SETUP PLAYER & CAMERA ---
-    CHAR_VISUAL_WIDTH = 130
-    CHAR_VISUAL_HEIGHT = 160
-    HITBOX_WIDTH = 50
-    HITBOX_HEIGHT = 30
-    PLAYER_SPEED = 8
+    px = map_labirin.TILE_SIZE * 1.5
+    py = map_labirin.TILE_SIZE * 1.5
 
     walk_cycle = 0
     facing_right = True
     anim_state = 2 
 
-    # Inisialisasi Quiz dari module terpisah
     math_quiz = quiz.MathQuiz(level)
-
+    
     total_map_w = w * map_labirin.TILE_SIZE
     total_map_h = h * map_labirin.TILE_SIZE
-    
-    # Inisialisasi Camera dari module terpisah
     game_cam = camera.GameCamera(total_map_w, total_map_h, SCREEN_WIDTH, SCREEN_HEIGHT)
 
     player_hitbox = pygame.Rect(0, 0, HITBOX_WIDTH, HITBOX_HEIGHT)
     player_hitbox.center = (px, py)
 
     game_paused = False
-    
     btn_resume = ui_assets.Button("LANJUTKAN", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 30, 250, 70, lambda: None, font_size=25)
     btn_quit_lvl = ui_assets.Button("KELUAR KE MENU", SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 60, 250, 70, lambda: None, font_size=25)
     pause_buttons = [btn_resume, btn_quit_lvl]
@@ -125,6 +109,7 @@ def run_game(screen, level=1):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "QUIT"
+            
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     if math_quiz.active:
@@ -146,60 +131,57 @@ def run_game(screen, level=1):
                     elif btn_quit_lvl.rect.collidepoint(mouse_pos):
                         return "MENU"
 
-        if not game_paused:
-            if is_victory:
-                pass 
-            elif math_quiz.active:
-                pass 
-            else:
-                if door_sprite:
-                    door_sprite.update()
-                    if door_sprite.finished_opening and door_sprite in wall_sprites:
-                        wall_sprites.remove(door_sprite)
-                        floor_sprites.add(door_sprite) 
+        if not game_paused and not is_victory and not math_quiz.active:
+            if door_sprite:
+                door_sprite.update()
+                if door_sprite.finished_opening and door_sprite in wall_sprites:
+                    wall_sprites.remove(door_sprite)
+                    floor_sprites.add(door_sprite) 
 
-                if portal_sprite:
-                    portal_sprite.update()
+            if portal_sprite:
+                portal_sprite.update()
 
-                keys = pygame.key.get_pressed()
-                dx, dy = 0, 0
-                is_moving = False
+            keys = pygame.key.get_pressed()
+            dx, dy = 0, 0
+            is_moving = False
 
-                if keys[pygame.K_LEFT]:
-                    dx = -PLAYER_SPEED; anim_state = 0; facing_right = False; is_moving = True
-                elif keys[pygame.K_RIGHT]:
-                    dx = PLAYER_SPEED; anim_state = 0; facing_right = True; is_moving = True
-                elif keys[pygame.K_UP]:
-                    dy = -PLAYER_SPEED; anim_state = 1; is_moving = True
-                elif keys[pygame.K_DOWN]:
-                    dy = PLAYER_SPEED; anim_state = 2; is_moving = True
+            if keys[pygame.K_LEFT]:
+                dx = -PLAYER_SPEED; anim_state = 0; facing_right = False; is_moving = True
+            elif keys[pygame.K_RIGHT]:
+                dx = PLAYER_SPEED; anim_state = 0; facing_right = True; is_moving = True
+            elif keys[pygame.K_UP]:
+                dy = -PLAYER_SPEED; anim_state = 1; is_moving = True
+            elif keys[pygame.K_DOWN]:
+                dy = PLAYER_SPEED; anim_state = 2; is_moving = True
 
-                player_hitbox.x += dx
-                hits = pygame.sprite.spritecollide(type('obj', (object,), {'rect': player_hitbox}), wall_sprites, False)
-                for wall in hits:
-                    if wall == door_sprite and not door_sprite.is_opening:
-                        math_quiz.active = True
-                    if dx > 0: player_hitbox.right = wall.rect.left
-                    if dx < 0: player_hitbox.left = wall.rect.right
+            # Collision X
+            player_hitbox.x += dx
+            hits = pygame.sprite.spritecollide(type('obj', (object,), {'rect': player_hitbox}), wall_sprites, False)
+            for wall in hits:
+                if wall == door_sprite and not door_sprite.is_opening:
+                    math_quiz.active = True
+                if dx > 0: player_hitbox.right = wall.rect.left
+                if dx < 0: player_hitbox.left = wall.rect.right
 
-                player_hitbox.y += dy
-                hits = pygame.sprite.spritecollide(type('obj', (object,), {'rect': player_hitbox}), wall_sprites, False)
-                for wall in hits:
-                    if wall == door_sprite and not door_sprite.is_opening:
-                        math_quiz.active = True
-                    if dy > 0: player_hitbox.bottom = wall.rect.top
-                    if dy < 0: player_hitbox.top = wall.rect.bottom
+            # Collision Y
+            player_hitbox.y += dy
+            hits = pygame.sprite.spritecollide(type('obj', (object,), {'rect': player_hitbox}), wall_sprites, False)
+            for wall in hits:
+                if wall == door_sprite and not door_sprite.is_opening:
+                    math_quiz.active = True
+                if dy > 0: player_hitbox.bottom = wall.rect.top
+                if dy < 0: player_hitbox.top = wall.rect.bottom
 
-                if is_moving: walk_cycle += 0.25
-                else: 
-                    walk_cycle = 0
-                    if anim_state == 0: walk_cycle = 0 
-            
-                game_cam.update(player_hitbox)
+            if is_moving: walk_cycle += 0.25
+            else: 
+                walk_cycle = 0
+                if anim_state == 0: walk_cycle = 0 
+        
+            game_cam.update(player_hitbox)
 
-                if portal_sprite and player_hitbox.colliderect(portal_sprite.rect):
-                    is_victory = True
-                    return "VICTORY"
+            if portal_sprite and player_hitbox.colliderect(portal_sprite.rect):
+                is_victory = True
+                return "VICTORY"
 
         # --- RENDER ---
         screen.fill((20, 20, 30))
@@ -208,13 +190,13 @@ def run_game(screen, level=1):
         for sprite in floor_sprites:
             offset_pos = game_cam.apply(sprite.rect)
             if -view_margin < offset_pos.x < SCREEN_WIDTH + view_margin and \
-            -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
+               -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
                 screen.blit(sprite.image, offset_pos)
 
         for sprite in wall_sprites:
             offset_pos = game_cam.apply(sprite.rect)
             if -view_margin < offset_pos.x < SCREEN_WIDTH + view_margin and \
-            -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
+               -view_margin < offset_pos.y < SCREEN_HEIGHT + view_margin:
                 screen.blit(sprite.image, offset_pos)
 
         player_img = animasi_jalan.get_player_image(
@@ -222,8 +204,7 @@ def run_game(screen, level=1):
         )
         visual_rect = player_img.get_rect()
         visual_rect.midbottom = (player_hitbox.centerx, player_hitbox.bottom + 10)
-        final_draw_pos = game_cam.apply(visual_rect)
-        screen.blit(player_img, final_draw_pos)
+        screen.blit(player_img, game_cam.apply(visual_rect))
 
         if math_quiz.active:
             math_quiz.draw(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -235,66 +216,42 @@ def run_game(screen, level=1):
 
             font_pause = pygame.font.SysFont("Verdana", 40, bold=True)
             title_pause = font_pause.render("GAME PAUSED", True, (255, 255, 255))
-            title_rect = title_pause.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 120))
-            screen.blit(title_pause, title_rect)
+            screen.blit(title_pause, title_pause.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 120)))
 
             for btn in pause_buttons:
                 btn.check_hover(mouse_pos)
                 btn.draw(screen)
         else:
             font_ui = pygame.font.SysFont("Arial", 20)
-            text_esc = font_ui.render("ESC: Pause Menu", True, (200, 200, 200))
-            screen.blit(text_esc, (20, 20))
+            screen.blit(font_ui.render("ESC: Pause Menu", True, (200, 200, 200)), (20, 20))
             
             font_lvl = pygame.font.SysFont("Verdana", 28, bold=True)
             lvl_str = f"LEVEL {level}"
-            text_lvl_shadow = font_lvl.render(lvl_str, True, (0, 0, 0))
-            screen.blit(text_lvl_shadow, (SCREEN_WIDTH - 148, 22))
-            screen.blit(text_lvl_shadow, (SCREEN_WIDTH - 152, 22))
-            screen.blit(text_lvl_shadow, (SCREEN_WIDTH - 150, 20))
-            screen.blit(text_lvl_shadow, (SCREEN_WIDTH - 150, 24))
-
-            text_lvl_main = font_lvl.render(lvl_str, True, (255, 220, 50))
-            screen.blit(text_lvl_main, (SCREEN_WIDTH - 150, 22))
+            
+            # Text Shadow & Main
+            for off in [(2,2), (-2,2), (0,0)]: # Simple shadow
+                col = (0,0,0) if off != (0,0) else (255, 220, 50)
+                txt = font_lvl.render(lvl_str, True, col)
+                screen.blit(txt, (SCREEN_WIDTH - 150 + off[0], 22 + off[1]))
 
         pygame.display.flip()
         clock.tick(FPS)
     
     return "MENU"
 
-# --- MAIN MENU & LEVEL SELECT ---
 def main_menu():
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Arithm-Adventure")
-    
     w, h = screen.get_size()
     clock = pygame.time.Clock()
     
     bg_map = ui_assets.create_background_map(w, h)
     
     running = True
-    
     unlocked_level = 1
     selected_level = 1
     menu_state = "MAIN" 
-
-    def btn_start_action():
-        nonlocal menu_state
-        menu_state = "LEVEL_SELECT"
-
-    def btn_quit_action():
-        nonlocal running
-        running = False
-        
-    def btn_level_action(lvl):
-        nonlocal selected_level, menu_state
-        selected_level = lvl
-        menu_state = "GAME"
-        
-    def btn_back_action():
-        nonlocal menu_state
-        menu_state = "MAIN"
 
     title_font = pygame.font.SysFont("Verdana", 80, bold=True)
     subtitle_font = pygame.font.SysFont("Arial", 30, italic=True)
@@ -302,20 +259,14 @@ def main_menu():
     while running:
         if menu_state == "GAME":
             result = run_game(screen, selected_level)
-            if result == "QUIT":
-                running = False
+            if result == "QUIT": running = False
             elif result == "GAME_OVER":
-                # Menggunakan module screens
-                res = screens.animate_game_over(screen)
-                if res == "QUIT": running = False
+                if screens.animate_game_over(screen) == "QUIT": running = False
                 menu_state = "LEVEL_SELECT" 
             elif result == "VICTORY":
                 if selected_level == unlocked_level and unlocked_level < 5:
                     unlocked_level += 1
-                
-                # Menggunakan module screens
-                res = screens.animate_victory_screen(screen, selected_level)
-                if res == "QUIT": running = False
+                if screens.animate_victory_screen(screen, selected_level) == "QUIT": running = False
                 menu_state = "LEVEL_SELECT"
             else:
                 menu_state = "MAIN" 
@@ -325,9 +276,8 @@ def main_menu():
 
         mouse_pos = pygame.mouse.get_pos()
         events = pygame.event.get()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        for event in events:
+            if event.type == pygame.QUIT: running = False
 
         screen.fill(ui_assets.COLOR_SKY_TOP)
         pygame.draw.rect(screen, ui_assets.COLOR_SKY_BOTTOM, (0, h//2, w, h//2))
@@ -345,9 +295,10 @@ def main_menu():
             sub_surf = subtitle_font.render("Belajar Matematika Sambil Bertualang", True, (200, 230, 255))
             screen.blit(sub_surf, sub_surf.get_rect(center=(w//2, h//4 + 70)))
             
-            btn_play = ui_assets.Button("MULAI PERMAINAN", w//2, h//2, 350, 80, btn_start_action)
-            btn_quit = ui_assets.Button("KELUAR", w//2, h//2 + 120, 350, 80, btn_quit_action)
-            current_buttons = [btn_play, btn_quit]
+            current_buttons = [
+                ui_assets.Button("MULAI PERMAINAN", w//2, h//2, 350, 80, lambda: locals().update(menu_state="LEVEL_SELECT")),
+                ui_assets.Button("KELUAR", w//2, h//2 + 120, 350, 80, lambda: locals().update(running=False))
+            ]
             
         elif menu_state == "LEVEL_SELECT":
             sub_surf = subtitle_font.render("Pilih Level Tantanganmu", True, (200, 230, 255))
@@ -356,26 +307,26 @@ def main_menu():
             start_y = h//2 - 50
             gap = 120
             
-            l1 = ui_assets.Button("LEVEL 1", w//2 - gap, start_y, 100, 80, lambda: btn_level_action(1), enabled=(1 <= unlocked_level), font_size=20)
-            l2 = ui_assets.Button("LEVEL 2", w//2,       start_y, 100, 80, lambda: btn_level_action(2), enabled=(2 <= unlocked_level), font_size=20)
-            l3 = ui_assets.Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: btn_level_action(3), enabled=(3 <= unlocked_level), font_size=20)
-            
-            l4 = ui_assets.Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: btn_level_action(4), enabled=(4 <= unlocked_level), font_size=20)
-            l5 = ui_assets.Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: btn_level_action(5), enabled=(5 <= unlocked_level), font_size=20)
-            
-            btn_back = ui_assets.Button("KEMBALI", w//2, h - 100, 200, 60, btn_back_action)
-            
-            current_buttons = [l1, l2, l3, l4, l5, btn_back]
+            def set_lvl(l): 
+                nonlocal selected_level, menu_state
+                selected_level = l; menu_state = "GAME"
+
+            current_buttons = [
+                ui_assets.Button("LEVEL 1", w//2 - gap, start_y, 100, 80, lambda: set_lvl(1), enabled=(1 <= unlocked_level), font_size=20),
+                ui_assets.Button("LEVEL 2", w//2, start_y, 100, 80, lambda: set_lvl(2), enabled=(2 <= unlocked_level), font_size=20),
+                ui_assets.Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: set_lvl(3), enabled=(3 <= unlocked_level), font_size=20),
+                ui_assets.Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: set_lvl(4), enabled=(4 <= unlocked_level), font_size=20),
+                ui_assets.Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: set_lvl(5), enabled=(5 <= unlocked_level), font_size=20),
+                ui_assets.Button("KEMBALI", w//2, h - 100, 200, 60, lambda: locals().update(menu_state="MAIN"))
+            ]
 
         for btn in current_buttons:
             btn.check_hover(mouse_pos)
             btn.draw(screen)
         
         for event in events:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for btn in current_buttons:
-                        btn.click()
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                for btn in current_buttons: btn.click()
 
         pygame.display.flip()
         clock.tick(FPS)

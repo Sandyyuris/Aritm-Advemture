@@ -2,7 +2,6 @@ import pygame
 import cairo
 import math
 
-# --- KONFIGURASI VISUAL ---
 CAIRO_WIDTH, CAIRO_HEIGHT = 640, 800
 BASE_SCALE = 5  
 
@@ -30,7 +29,7 @@ def rounded_rect(ctx, x, y, w, h, r):
     ctx.close_path()
 
 def draw_adventurer_front_fixed(walk_cycle):
-    """Tampak DEPAN Lengkap"""
+    """Tampak Depan Lengkap"""
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CAIRO_WIDTH, CAIRO_HEIGHT)
     ctx = cairo.Context(surface)
     ctx.scale(BASE_SCALE, BASE_SCALE)
@@ -99,7 +98,7 @@ def draw_adventurer_front_fixed(walk_cycle):
     return surface
 
 def draw_adventurer_back_fixed(walk_cycle):
-    """Tampak BELAKANG Lengkap"""
+    """Tampak Belakang Lengkap"""
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CAIRO_WIDTH, CAIRO_HEIGHT)
     ctx = cairo.Context(surface)
     ctx.scale(BASE_SCALE, BASE_SCALE)
@@ -238,7 +237,7 @@ def get_player_image(state, walk_cycle, facing_right, target_width, target_heigh
 
     img = cairo_to_pygame(cairo_surf)
 
-    # Flip jika hadap kiri (hanya mode samping)
+    # Flip hadap kiri (samping)
     if state == 0 and not facing_right:
         img = pygame.transform.flip(img, True, False)
         
