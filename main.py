@@ -256,6 +256,14 @@ def main_menu():
     title_font = pygame.font.SysFont("Verdana", 80, bold=True)
     subtitle_font = pygame.font.SysFont("Arial", 30, italic=True)
 
+    def change_state(new_state):
+        nonlocal menu_state
+        menu_state = new_state
+    
+    def quit_app():
+        nonlocal running
+        running = False
+
     while running:
         if menu_state == "GAME":
             result = run_game(screen, selected_level)
@@ -296,8 +304,8 @@ def main_menu():
             screen.blit(sub_surf, sub_surf.get_rect(center=(w//2, h//4 + 70)))
             
             current_buttons = [
-                ui_assets.Button("MULAI PERMAINAN", w//2, h//2, 350, 80, lambda: locals().update(menu_state="LEVEL_SELECT")),
-                ui_assets.Button("KELUAR", w//2, h//2 + 120, 350, 80, lambda: locals().update(running=False))
+                ui_assets.Button("MULAI PERMAINAN", w//2, h//2, 350, 80, lambda: change_state("LEVEL_SELECT")),
+                ui_assets.Button("KELUAR", w//2, h//2 + 120, 350, 80, lambda: quit_app())
             ]
             
         elif menu_state == "LEVEL_SELECT":
@@ -317,7 +325,7 @@ def main_menu():
                 ui_assets.Button("LEVEL 3", w//2 + gap, start_y, 100, 80, lambda: set_lvl(3), enabled=(3 <= unlocked_level), font_size=20),
                 ui_assets.Button("LEVEL 4", w//2 - gap//2 - 3, start_y + 100, 100, 80, lambda: set_lvl(4), enabled=(4 <= unlocked_level), font_size=20),
                 ui_assets.Button("LEVEL 5", w//2 + gap//2 + 3, start_y + 100, 100, 80, lambda: set_lvl(5), enabled=(5 <= unlocked_level), font_size=20),
-                ui_assets.Button("KEMBALI", w//2, h - 100, 200, 60, lambda: locals().update(menu_state="MAIN"))
+                ui_assets.Button("KEMBALI", w//2, h - 100, 200, 60, lambda: change_state("MAIN"))
             ]
 
         for btn in current_buttons:
