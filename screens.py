@@ -2,7 +2,7 @@ import pygame
 import math
 
 def animate_victory_screen(screen, level):
-    """Layar kemenangan sederhana: Hanya Teks Level Complete"""
+    """Level Complete"""
     w, h = screen.get_size()
     clock = pygame.time.Clock()
     
@@ -51,7 +51,7 @@ def animate_victory_screen(screen, level):
         clock.tick(60)
 
 def animate_game_over(screen):
-    """Layar Game Over"""
+    """Game Over"""
     w, h = screen.get_size()
     clock = pygame.time.Clock()
     font_big = pygame.font.SysFont("Verdana", 70, bold=True)
