@@ -25,7 +25,7 @@ class MathQuiz:
         self.generate_question()
         
         self.active = False
-        self.state = "playing" # playing, success, failed
+        self.state = "playing" 
         
         self.font_title = pygame.font.SysFont("Georgia", 32, bold=True)
         self.font_big = pygame.font.SysFont("Verdana", 50, bold=True)
@@ -34,6 +34,32 @@ class MathQuiz:
 
     def generate_question(self):
         ops = ['+', '-', 'x', '÷']
+
+        if self.level == 5:
+            valid = False
+            while not valid:
+                a = random.randint(2, 12)
+                b = random.randint(2, 12)
+                c = random.randint(2, 12)
+                
+                op1 = random.choice(ops)
+                op2 = random.choice(ops)
+                
+                equation_visual = f"{a} {op1} {b} {op2} {c}"
+                equation_python = equation_visual.replace('x', '*').replace('÷', '/')
+                
+                try:
+                    ans = eval(equation_python)
+                    
+                    if ans == int(ans) and 0 <= ans <= 100:
+                        self.current_question = f"{equation_visual} = ?"
+                        self.current_answer = str(int(ans))
+                        self.user_input = ""
+                        valid = True
+                except ZeroDivisionError:
+                    continue 
+            return 
+
         op = ops[min(self.level - 1, 3)] if self.level <= 4 else random.choice(ops)
 
         if op == '+':
@@ -46,7 +72,7 @@ class MathQuiz:
         elif op == 'x':
             a, b = random.randint(2, 10), random.randint(2, 10)
             ans = a * b
-        else: # Divide
+        else: 
             ans = random.randint(2, 10)
             b = random.randint(2, 10)
             a = ans * b
@@ -121,7 +147,7 @@ class MathQuiz:
             self.cached_panel = self.create_quiz_panel(box_w, box_h)
         screen.blit(self.cached_panel, (box_x, box_y))
 
-        # Lives
+        # Nyawa
         heart_start_x = box_x + 60
         heart_start_y = box_y + 55
         for i in range(self.max_lives):
@@ -136,7 +162,7 @@ class MathQuiz:
         q_surf = self.font_big.render(self.current_question, True, (50, 30, 10))
         screen.blit(q_surf, q_surf.get_rect(center=(box_x + box_w//2, box_y + 170)))
 
-        # Input Box (Dynamic)
+        # Input Box
         input_w, input_h = box_w - 200, 50
         surf_cairo = cairo.ImageSurface(cairo.FORMAT_ARGB32, input_w, input_h)
         ctx = cairo.Context(surf_cairo)
