@@ -6,6 +6,14 @@ def animate_victory_screen(screen, level):
     w, h = screen.get_size()
     clock = pygame.time.Clock()
     
+    # --- AUDIO SETUP: VICTORY SOUND ---
+    try:
+        victory_sfx = pygame.mixer.Sound('audio/victory.wav')
+        victory_sfx.set_volume(0.6)
+        victory_sfx.play()
+    except:
+        pass # Aman jika file tidak ada
+
     font_title = pygame.font.SysFont("Verdana", 60, bold=True)
     font_sub = pygame.font.SysFont("Arial", 30, italic=True)
     
@@ -54,6 +62,15 @@ def animate_game_over(screen):
     """Game Over"""
     w, h = screen.get_size()
     clock = pygame.time.Clock()
+    
+    # --- AUDIO SETUP: GAME OVER SOUND ---
+    try:
+        gameover_sfx = pygame.mixer.Sound('audio/gameover.wav')
+        gameover_sfx.set_volume(0.6)
+        gameover_sfx.play()
+    except:
+        pass # Aman jika file tidak ada
+
     font_big = pygame.font.SysFont("Verdana", 70, bold=True)
     font_small = pygame.font.SysFont("Arial", 30)
     

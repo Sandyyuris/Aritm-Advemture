@@ -16,6 +16,15 @@ def run_game(screen, level=1):
     clock = pygame.time.Clock()
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
+    # --- AUDIO SETUP: GAME BGM ---
+    # Memutar musik game secara looping (-1)
+    try:
+        pygame.mixer.music.load('audio/game_bgm.mp3')
+        pygame.mixer.music.play(-1) 
+        pygame.mixer.music.set_volume(0.4)
+    except:
+        pass # Lanjut tanpa error jika file tidak ada
+
     # Setup Map Dimension
     base_w, base_h = 17, 13
     maze_cols = base_w + ((level - 1) * 4)
@@ -108,6 +117,7 @@ def run_game(screen, level=1):
         mouse_pos = pygame.mouse.get_pos()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.mixer.music.stop() # Matikan musik
                 return "QUIT"
             
             if event.type == pygame.KEYDOWN:
@@ -120,6 +130,7 @@ def run_game(screen, level=1):
                 if math_quiz.active and not game_paused:
                     math_quiz.handle_input(event)
                     if math_quiz.state == "failed":
+                        pygame.mixer.music.stop() # Matikan musik saat kalah
                         return "GAME_OVER" 
                     elif math_quiz.state == "success":
                         door_sprite.is_opening = True
@@ -129,6 +140,7 @@ def run_game(screen, level=1):
                     if btn_resume.rect.collidepoint(mouse_pos):
                         game_paused = False
                     elif btn_quit_lvl.rect.collidepoint(mouse_pos):
+                        pygame.mixer.music.stop() # Matikan musik saat keluar ke menu
                         return "MENU"
 
         if not game_paused and not is_victory and not math_quiz.active:
@@ -181,6 +193,7 @@ def run_game(screen, level=1):
 
             if portal_sprite and player_hitbox.colliderect(portal_sprite.rect):
                 is_victory = True
+                pygame.mixer.music.stop() # Matikan musik saat menang
                 return "VICTORY"
 
         # --- RENDER ---
@@ -241,6 +254,7 @@ def run_game(screen, level=1):
 
 def main_menu():
     pygame.init()
+    pygame.mixer.init() # Inisialisasi Audio Mixer
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Arithm-Adventure")
     w, h = screen.get_size()
@@ -256,6 +270,15 @@ def main_menu():
     title_font = pygame.font.SysFont("Verdana", 80, bold=True)
     subtitle_font = pygame.font.SysFont("Arial", 30, italic=True)
 
+    # --- AUDIO SETUP: MENU BGM ---
+    # Memutar musik menu secara looping
+    try:
+        pygame.mixer.music.load('audio/Main Menu.mp3')
+        pygame.mixer.music.play(-1) 
+        pygame.mixer.music.set_volume(0.5)
+    except:
+        pass # Aman jika file tidak ada
+
     def change_state(new_state):
         nonlocal menu_state
         menu_state = new_state
@@ -266,7 +289,19 @@ def main_menu():
 
     while running:
         if menu_state == "GAME":
+            pygame.mixer.music.stop() # Hentikan musik menu saat masuk game
+            
             result = run_game(screen, selected_level)
+            
+            # --- RESTART MENU MUSIC ---
+            # Putar lagi musik menu saat kembali dari game
+            try:
+                pygame.mixer.music.load('audio/Main Menu.mp3')
+                pygame.mixer.music.play(-1)
+                pygame.mixer.music.set_volume(0.5)
+            except:
+                pass
+
             if result == "QUIT": running = False
             elif result == "GAME_OVER":
                 if screens.animate_game_over(screen) == "QUIT": running = False
