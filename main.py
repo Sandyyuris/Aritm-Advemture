@@ -17,13 +17,12 @@ def run_game(screen, level=1):
     SCREEN_WIDTH, SCREEN_HEIGHT = screen.get_size()
 
     # --- AUDIO SETUP: GAME BGM ---
-    # Memutar musik game secara looping (-1)
     try:
         pygame.mixer.music.load('audio/game_bgm.mp3')
         pygame.mixer.music.play(-1) 
         pygame.mixer.music.set_volume(0.4)
     except:
-        pass # Lanjut tanpa error jika file tidak ada
+        pass 
 
     # Setup Map Dimension
     base_w, base_h = 17, 13
