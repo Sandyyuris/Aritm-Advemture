@@ -28,7 +28,7 @@ def rounded_rect(ctx, x, y, w, h, r):
     ctx.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
     ctx.close_path()
 
-def draw_adventurer_front_fixed(walk_cycle):
+def draw_adventurer_front(walk_cycle):
     """Tampak Depan Lengkap"""
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CAIRO_WIDTH, CAIRO_HEIGHT)
     ctx = cairo.Context(surface)
@@ -97,7 +97,7 @@ def draw_adventurer_front_fixed(walk_cycle):
 
     return surface
 
-def draw_adventurer_back_fixed(walk_cycle):
+def draw_adventurer_back(walk_cycle):
     """Tampak Belakang Lengkap"""
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CAIRO_WIDTH, CAIRO_HEIGHT)
     ctx = cairo.Context(surface)
@@ -231,9 +231,9 @@ def get_player_image(state, walk_cycle, facing_right, target_width, target_heigh
         angle = math.sin(walk_cycle) * 30
         cairo_surf = draw_dynamic_character(angle)
     elif state == 1: # Belakang
-        cairo_surf = draw_adventurer_back_fixed(walk_cycle)
+        cairo_surf = draw_adventurer_back(walk_cycle)
     else: # Depan
-        cairo_surf = draw_adventurer_front_fixed(walk_cycle)
+        cairo_surf = draw_adventurer_front(walk_cycle)
 
     img = cairo_to_pygame(cairo_surf)
 

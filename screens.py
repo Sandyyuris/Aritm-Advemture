@@ -12,7 +12,7 @@ def animate_victory_screen(screen, level):
         victory_sfx.set_volume(0.6)
         victory_sfx.play()
     except:
-        pass # Aman jika file tidak ada
+        pass 
 
     font_title = pygame.font.SysFont("Verdana", 60, bold=True)
     font_sub = pygame.font.SysFont("Arial", 30, italic=True)
@@ -69,7 +69,7 @@ def animate_game_over(screen):
         gameover_sfx.set_volume(0.6)
         gameover_sfx.play()
     except:
-        pass # Aman jika file tidak ada
+        pass 
 
     font_big = pygame.font.SysFont("Verdana", 70, bold=True)
     font_small = pygame.font.SysFont("Arial", 30)
